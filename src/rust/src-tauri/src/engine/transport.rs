@@ -88,11 +88,21 @@ impl BrokerTransport {
         }
     }
 
-    /// The first-install transport: the broker validates and runs the staged installer.
-    pub fn for_setup(exe: impl Into<PathBuf>, script: impl Into<PathBuf>) -> Self {
-        let mut transport = Self::new(exe);
+    /// Test seam for the first-install transport without UAC.
+    #[doc(hidden)]
+    pub fn with_launcher_for_setup(
+        exe: impl Into<PathBuf>,
+        script: impl Into<PathBuf>,
+        launch: Launcher,
+    ) -> Self {
+        let mut transport = Self::with_launcher(exe, launch);
         transport.setup = Some(script.into());
         transport
+    }
+
+    /// The first-install transport: the broker validates and runs the staged installer.
+    pub fn for_setup(exe: impl Into<PathBuf>, script: impl Into<PathBuf>) -> Self {
+        Self::with_launcher_for_setup(exe, script, Box::new(elevate::launch_elevated))
     }
 
     /// Mirrors v1 `CanInvokeMutations`: a declined (or lost) session disables mutations until the

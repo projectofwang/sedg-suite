@@ -15,6 +15,7 @@ use sedg_manager::engine::protocol::{Action, EngineCode, Request};
 use sedg_manager::engine::transport::{
     envelope_line, BrokerTransport, DirectTransport, Launcher, Transport,
 };
+use sedg_manager::setup;
 
 fn broker_exe() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_sedg-manager"))
@@ -85,7 +86,11 @@ fn a_non_elevated_broker_is_refused_before_any_request_is_sent() {
         Ok(())
     });
 
-    let transport = BrokerTransport::with_launcher(broker_exe(), launcher);
+    // Keep the broker in its serving loop; without a valid script it exits before the
+    // transport can check its token, which is a race, not the refusal under test.
+    let staged = setup::Staged::create(b"#requires -Version 5.1\n").expect("staging succeeds");
+    let transport =
+        BrokerTransport::with_launcher_for_setup(broker_exe(), staged.script(), launcher);
     let outcome = transport.run(&Request::new(Action::Pause, json!({})), &|_| {});
 
     assert!(!outcome.ok);
