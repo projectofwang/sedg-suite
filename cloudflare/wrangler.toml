@@ -1,0 +1,19 @@
+# Source of truth: this file for worker name / route / compatibilityDate;
+# cloudflare.config.ts and wrangler.config.ts mirror it (assets-only route,
+# no `main` script: static assets only, no Worker script).
+# Must match the worker that already owns the dl.* route.
+name = "sedg-with-zapret-dpi-bypass-auto-installer"
+compatibility_date = "2026-09-27"
+
+# Custom domain must exist in Cloudflare DNS first.
+# zone_name must be the exact Cloudflare zone; if the parent zone is dpdns.org
+# (shared suffix), point this route at that zone instead.
+routes = [
+  { pattern = "dl.taiyuanwangjie.dpdns.org/*", zone_name = "taiyuanwangjie.dpdns.org" }
+]
+
+# Disabled: serve only the custom domain, no default *.workers.dev route.
+workers_dev = false
+
+[assets]
+directory = "./public"

@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" msdata:Ordinal="5" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- === Error titles (design §14 — EN) === -->
+  <data name="Error_EngineSpawn" xml:space="preserve"><value>Could not start the engine</value></data>
+  <data name="Error_Protocol" xml:space="preserve"><value>Engine returned an unexpected response</value></data>
+  <data name="Error_Timeout" xml:space="preserve"><value>The operation timed out</value></data>
+  <data name="Error_BrokerDenied" xml:space="preserve"><value>Elevation was declined</value></data>
+  <data name="Error_BrokerNonce" xml:space="preserve"><value>Security check failed (nonce/expiry)</value></data>
+  <data name="Error_BrokerSchema" xml:space="preserve"><value>Request was rejected (invalid arguments)</value></data>
+  <data name="Error_MutexBusy" xml:space="preserve"><value>Another operation is already running</value></data>
+  <data name="Error_VersionMismatch" xml:space="preserve"><value>App and engine versions are incompatible</value></data>
+  <data name="Error_UnsupportedOs" xml:space="preserve"><value>Windows 11 x64 is required</value></data>
+  <data name="Error_Offline" xml:space="preserve"><value>No network connection</value></data>
+  <data name="Error_ManifestUnapproved" xml:space="preserve"><value>Manifest version is not approved</value></data>
+  <data name="Error_HashMismatch" xml:space="preserve"><value>File verification failed</value></data>
+  <data name="Error_InsufficientDisk" xml:space="preserve"><value>Not enough disk space</value></data>
+  <data name="Error_UacDenied" xml:space="preserve"><value>Administrator approval is required</value></data>
+  <data name="Error_Network" xml:space="preserve"><value>A network error occurred</value></data>
+  <data name="Error_SourceUnreachable" xml:space="preserve"><value>Download source unreachable</value></data>
+  <data name="Error_NoNetwork" xml:space="preserve"><value>Network unavailable for download</value></data>
+  <data name="Error_EngineGeneric" xml:space="preserve"><value>The engine reported an error</value></data>
+  <data name="Error_Validation" xml:space="preserve"><value>Input is invalid</value></data>
+  <data name="Error_Preflight" xml:space="preserve"><value>Pre-check failed</value></data>
+  <data name="Error_Cancelled" xml:space="preserve"><value>Operation cancelled</value></data>
+  <data name="Error_NotInstalled" xml:space="preserve"><value>Engine is not installed</value></data>
+  <data name="Error_Config" xml:space="preserve"><value>Could not save settings</value></data>
+
+  <!-- === Engine transport (EngineProcessClient) === -->
+  <data name="Engine_NotInstalled" xml:space="preserve"><value>The engine was not found at the canonical install path.</value></data>
+  <data name="Engine_ArgumentMapping" xml:space="preserve"><value>The request arguments failed app-side mapping.</value></data>
+  <data name="Engine_CancelledBeforeStart" xml:space="preserve"><value>The operation was cancelled before the engine started.</value></data>
+  <data name="Engine_SpawnFailed" xml:space="preserve"><value>The engine process could not be started.</value></data>
+  <data name="Engine_Run_NoTerminal" xml:space="preserve"><value>The engine ended without a terminal result.</value></data>
+  <data name="Engine_Run_NoHello" xml:space="preserve"><value>The engine did not answer with a protocol hello.</value></data>
+  <data name="Engine_Run_InvalidLine" xml:space="preserve"><value>The engine wrote an invalid protocol line.</value></data>
+  <data name="Engine_Run_Failed" xml:space="preserve"><value>The engine run failed unexpectedly.</value></data>
+  <data name="Engine_Status_InvalidSnapshot" xml:space="preserve"><value>The status result carried an invalid snapshot payload.</value></data>
+  <data name="Engine_NextStep_InstallEngine" xml:space="preserve"><value>Install the engine with the installer, then refresh.</value></data>
+  <data name="Engine_NextStep_InspectLog" xml:space="preserve"><value>Open the operation log for details.</value></data>
+
+  <!-- === Broker transport (BrokerCoordinator) === -->
+  <data name="Broker_NotABrokerAction" xml:space="preserve"><value>The action is not a broker action.</value></data>
+  <data name="Broker_Declined" xml:space="preserve"><value>Elevation was declined or unavailable.</value></data>
+  <data name="Broker_OperationReplay" xml:space="preserve"><value>The operation identity was rejected as a replay.</value></data>
+  <data name="Broker_Cancelled" xml:space="preserve"><value>Operation cancelled — the engine continues in the background; its result is recorded in the operation log.</value></data>
+  <data name="Broker_ConnectionLost" xml:space="preserve"><value>The broker session ended before a result arrived.</value></data>
+  <data name="Broker_NoConnect" xml:space="preserve"><value>The broker did not connect within the bootstrap window.</value></data>
+  <data name="Broker_NotElevated" xml:space="preserve"><value>The connecting client was not verified as elevated; the connection was dropped.</value></data>
+  <data name="Broker_ReplayRejected" xml:space="preserve"><value>A reused security nonce was rejected.</value></data>
+  <data name="Broker_NextStep_RetryElevation" xml:space="preserve"><value>Retry elevation from the status bar, then run the operation again.</value></data>
+
+  <!-- === Preflight === -->
+  <data name="Preflight_UnsupportedOs" xml:space="preserve"><value>Windows 11 (build 22000 or later) is required.</value></data>
+  <data name="Preflight_OsVerificationFailed" xml:space="preserve"><value>Windows could not be verified.</value></data>
+  <data name="Preflight_RequiresX64" xml:space="preserve"><value>A 64-bit Windows and 64-bit app process are required.</value></data>
+  <data name="Preflight_RuntimeMissing" xml:space="preserve"><value>The .NET 10 runtime could not be confirmed.</value></data>
+  <data name="Preflight_EngineMissing" xml:space="preserve"><value>The engine was not found at the canonical install path.</value></data>
+  <data name="Preflight_EngineCheckFailed" xml:space="preserve"><value>The engine path could not be checked.</value></data>
+  <data name="Preflight_DiskLow" xml:space="preserve"><value>Low disk space (at least 512 MB recommended)</value></data>
+  <data name="Preflight_Offline" xml:space="preserve"><value>No network interface is currently up; installs and updates need one.</value></data>
+  <data name="Preflight_Edition" xml:space="preserve"><value>Windows edition:</value></data>
+  <data name="Preflight_Header" xml:space="preserve"><value>Pre-check</value></data>
+  <data name="Preflight_BlockedLabel" xml:space="preserve"><value>Blocked (fix these first):</value></data>
+  <data name="Preflight_WarningLabel" xml:space="preserve"><value>Warnings:</value></data>
+
+  <!-- === Shell / navigation === -->
+  <data name="App_Title" xml:space="preserve"><value>SEDG Manager</value></data>
+  <data name="Nav_Dashboard" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="Nav_Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Nav_Operation" xml:space="preserve"><value>Operations</value></data>
+  <data name="Status_Broker_Idle" xml:space="preserve"><value>Broker: not started (elevation is requested on first mutation)</value></data>
+  <data name="Status_Broker_Launching" xml:space="preserve"><value>Broker: waiting for elevation…</value></data>
+  <data name="Status_Broker_Ready" xml:space="preserve"><value>Broker: elevated session ready</value></data>
+  <data name="Status_Broker_Declined" xml:space="preserve"><value>Broker: declined</value></data>
+  <data name="Btn_RetryElevation" xml:space="preserve"><value>Retry elevation</value></data>
+  <data name="Close_Blocked_Reason" xml:space="preserve"><value>An operation is still running — cancel it or wait for completion.</value></data>
+
+  <!-- === Dashboard === -->
+  <data name="Dash_Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Dash_LoadFailed" xml:space="preserve"><value>The dashboard could not be refreshed.</value></data>
+  <data name="Dash_SnapshotMissing" xml:space="preserve"><value>No snapshot payload was returned.</value></data>
+  <data name="Dash_Unknown" xml:space="preserve"><value>unknown</value></data>
+  <data name="Dash_NotApplicable" xml:space="preserve"><value>not applicable</value></data>
+  <data name="Dash_Row_Install" xml:space="preserve"><value>Install</value></data>
+  <data name="Dash_Row_Services" xml:space="preserve"><value>Services</value></data>
+  <data name="Dash_Row_Watchdog" xml:space="preserve"><value>Watchdog</value></data>
+  <data name="Dash_Row_Dns" xml:space="preserve"><value>DNS per adapter</value></data>
+  <data name="Dash_Row_Upstream" xml:space="preserve"><value>Upstream</value></data>
+  <data name="Dash_Row_Versions" xml:space="preserve"><value>Versions</value></data>
+  <data name="Dash_Row_LastUpdate" xml:space="preserve"><value>Last update</value></data>
+  <data name="Dash_Row_Readiness" xml:space="preserve"><value>Readiness</value></data>
+
+  <!-- === Operations === -->
+  <data name="Op_ChooseAction" xml:space="preserve"><value>Choose an operation</value></data>
+  <data name="Op_Action_Install" xml:space="preserve"><value>Install</value></data>
+  <data name="Op_Action_Update" xml:space="preserve"><value>Update</value></data>
+  <data name="Op_Action_Pause" xml:space="preserve"><value>Pause</value></data>
+  <data name="Op_Action_Resume" xml:space="preserve"><value>Resume</value></data>
+  <data name="Op_Action_Restart" xml:space="preserve"><value>Restart</value></data>
+  <data name="Op_Action_Uninstall" xml:space="preserve"><value>Uninstall</value></data>
+  <data name="Op_Action_SetUpstream" xml:space="preserve"><value>Set upstream</value></data>
+  <data name="Op_Action_SetDns" xml:space="preserve"><value>Set DNS servers</value></data>
+  <data name="Op_Action_SetLanguage" xml:space="preserve"><value>Set engine language</value></data>
+  <data name="Op_Action_TestCdnOptimization" xml:space="preserve"><value>Test CDN optimization</value></data>
+  <data name="Op_Action_Status" xml:space="preserve"><value>Status refresh</value></data>
+  <data name="Op_Install_Mode" xml:space="preserve"><value>Install mode</value></data>
+  <data name="Op_Install_Mode_Auto" xml:space="preserve"><value>default (engine decides)</value></data>
+  <data name="Op_Install_Mode_Clean" xml:space="preserve"><value>clean</value></data>
+  <data name="Op_Upstream_Kind" xml:space="preserve"><value>Upstream mode</value></data>
+  <data name="Op_Upstream_ResetDefaults" xml:space="preserve"><value>reset to defaults</value></data>
+  <data name="Op_Upstream_Custom" xml:space="preserve"><value>custom URL</value></data>
+  <data name="Op_Upstream_Url" xml:space="preserve"><value>Upstream URL</value></data>
+  <data name="Op_DnsServersLabel" xml:space="preserve"><value>DNS servers (1–4, comma separated)</value></data>
+  <data name="Op_LanguageLabel" xml:space="preserve"><value>Language</value></data>
+  <data name="Error_FieldValidation" xml:space="preserve"><value>Check the highlighted fields.</value></data>
+  <data name="Op_Continue" xml:space="preserve"><value>Continue</value></data>
+  <data name="Op_Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Op_Confirm" xml:space="preserve"><value>Confirm and run</value></data>
+  <data name="Op_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Op_CloseResult" xml:space="preserve"><value>Close</value></data>
+  <data name="Review_Scope" xml:space="preserve"><value>This operation will touch:</value></data>
+  <data name="Review_Scope_InstallPath" xml:space="preserve"><value>the install path under the engine directory</value></data>
+  <data name="Review_Scope_Services" xml:space="preserve"><value>the services dnsproxy-service and winws-service</value></data>
+  <data name="Review_Scope_Watchdog" xml:space="preserve"><value>the scheduled task SEDG-DNS-Watchdog</value></data>
+  <data name="Review_Scope_Dns" xml:space="preserve"><value>the system DNS configuration</value></data>
+  <data name="Review_NonDestructive" xml:space="preserve"><value>This operation is reversible.</value></data>
+  <data name="Op_Stage_Input" xml:space="preserve"><value>Input</value></data>
+  <data name="Op_Stage_Review" xml:space="preserve"><value>Review</value></data>
+  <data name="Op_Stage_Progress" xml:space="preserve"><value>Progress</value></data>
+  <data name="Op_Stage_Result" xml:space="preserve"><value>Result</value></data>
+  <data name="Op_Progress_None" xml:space="preserve"><value>No engine phases reported yet…</value></data>
+  <data name="Result_Badge_Success" xml:space="preserve"><value>Success</value></data>
+  <data name="Result_Badge_Failed" xml:space="preserve"><value>Failed</value></data>
+  <data name="Result_Badge_Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Result_Code" xml:space="preserve"><value>Code</value></data>
+  <data name="Result_State" xml:space="preserve"><value>Current state</value></data>
+  <data name="Result_Restored" xml:space="preserve"><value>Restored state</value></data>
+  <data name="Result_NextStep" xml:space="preserve"><value>Next step</value></data>
+  <data name="Result_LogPath" xml:space="preserve"><value>Log / transcript</value></data>
+  <data name="Result_OpenLog" xml:space="preserve"><value>Open log</value></data>
+  <data name="Result_CopyDetails" xml:space="preserve"><value>Copy details</value></data>
+  <data name="Result_Copied" xml:space="preserve"><value>Copied.</value></data>
+  <data name="Result_Incomplete" xml:space="preserve"><value>Clean-up may be incomplete — review the log before reinstalling.</value></data>
+  <data name="Result_CancelNote" xml:space="preserve"><value>Operation cancelled — the engine continues in the background; its result is recorded in the operation log.</value></data>
+
+  <!-- === Settings === -->
+  <data name="Settings_Title" xml:space="preserve"><value>Settings</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Language_English" xml:space="preserve"><value>English</value></data>
+  <data name="Language_Vietnamese" xml:space="preserve"><value>Tiếng Việt</value></data>
+  <data name="Settings_LanguageNote" xml:space="preserve"><value>The choice applies immediately and persists; no reinstall is needed. Push it to the engine with the "Set engine language" operation.</value></data>
+  <data name="Settings_Logs" xml:space="preserve"><value>Logs and records</value></data>
+  <data name="Settings_OpenAppLog" xml:space="preserve"><value>Open app log folder</value></data>
+  <data name="Settings_OpenOperations" xml:space="preserve"><value>Open operations.jsonl</value></data>
+  <data name="Settings_DataFolder" xml:space="preserve"><value>Data folder</value></data>
+
+  <!-- === First run === -->
+  <data name="FirstRun_Title" xml:space="preserve"><value>Welcome</value></data>
+  <data name="FirstRun_Text" xml:space="preserve"><value>Choose the manager language. You can change it any time in Settings.</value></data>
+  <data name="FirstRun_English" xml:space="preserve"><value>English</value></data>
+  <data name="FirstRun_Vietnamese" xml:space="preserve"><value>Tiếng Việt</value></data>
+  <data name="FirstRun_Skip" xml:space="preserve"><value>Decide later</value></data>
+</root>

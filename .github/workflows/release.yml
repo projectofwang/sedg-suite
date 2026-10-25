@@ -1,0 +1,159 @@
+name: release
+
+# Publish installer.ps1 + setup.ps1 + SHA256SUMS to GitHub Releases on every
+# version tag. Releases are a second origin, so users can cross-check the
+# Cloudflare hash against GitHub before running either script.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to (re)publish, e.g. v1.0.1'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Dispatch must build the tagged commit, not whatever main points at.
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
+
+      - name: Build Cloudflare assets (Git Bash)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash cloudflare/build.sh
+
+      - name: Gate — installer.ps1 and setup.ps1 must stay pure ASCII
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($f in @('installer.ps1', 'setup.ps1')) {
+            $n = ([regex]::Matches((Get-Content -LiteralPath $f -Raw), '[^\x00-\x7F]')).Count
+            if ($n -ne 0) { throw "$f has $n non-ASCII chars" }
+          }
+          # setup.ps1 is served to irm|iex and must stay LF so its published
+          # hash is stable across Windows and Linux checkouts.
+          if ((Get-Content -LiteralPath setup.ps1 -Raw) -match "`r") { throw 'setup.ps1 must stay LF' }
+
+      - name: Gate — Pester logic tests (Pester 5+)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -ge [version]'5.2.0' })) {
+            Install-Module Pester -MinimumVersion 5.2.0 -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
+          }
+          Import-Module Pester -MinimumVersion 5.2.0 -Force -ErrorAction Stop
+          Invoke-Pester -Path ./tests -Output Detailed -CI
+
+      - name: Gate — manifest schema + version parity + embedded parity
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath approved-releases.json -Raw | ConvertFrom-Json
+          if ($m.schema -ne 1 -or $m.policy -ne 'approved-only') { throw 'bad schema/policy' }
+          foreach ($c in @($m.components.dnsproxy, $m.components.zapret)) {
+            if ([string]::IsNullOrWhiteSpace($c.tag) -or [string]::IsNullOrWhiteSpace($c.asset) -or $c.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'bad component entry' }
+          }
+          if ($m.components.nssm.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'bad nssm entry' }
+          if ([string]$m.components.nssm.url -notmatch '^https://') { throw 'nssm url must be https' }
+          $line = (Select-String -LiteralPath installer.ps1 -Pattern "InstallerVersion = '" | Select-Object -First 1).Line
+          $iv = ($line -replace "^.*'([^']+)'.*", '$1').Trim()
+          if ($iv -ne [string]$m.installer.version) { throw "version mismatch: $iv vs $($m.installer.version)" }
+          $src = Get-Content -LiteralPath installer.ps1 -Raw
+          foreach ($tag in @($m.components.dnsproxy.tag, $m.components.zapret.tag)) {
+            if ($src -notmatch [regex]::Escape([string]$tag)) { throw "embedded manifest missing tag $tag" }
+          }
+          foreach ($h in @($m.components.dnsproxy.sha256, $m.components.zapret.sha256, $m.components.nssm.sha256)) {
+            if ($src -notmatch [regex]::Escape([string]$h)) { throw "embedded manifest missing hash $h" }
+          }
+
+      # The manager zip is built and published under its own bare version tag
+      # (1.2.5, not v1.2.5) BEFORE this installer tag, because its SHA-256 must
+      # already live in the tagged commit and release tags are immutable. This
+      # step therefore verifies the pre-published asset instead of building it.
+      - name: Gate — the pinned manager zip is published and hash-matching
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath approved-releases.json -Raw | ConvertFrom-Json
+          $mgr = $m.components.manager
+          if ($null -eq $mgr) { throw 'missing manager component' }
+          $ver = ([string]$mgr.tag) -replace '^v', ''
+          if ([string]$mgr.asset -ne "sedg-manager-win-x64-$ver.zip") { throw "manager asset does not match its tag: $($mgr.asset) / $($mgr.tag)" }
+          $src = Get-Content -LiteralPath installer.ps1 -Raw
+          $tag = ([regex]::Match($src, '(?m)^\$script:ManagerTag = ''([^'']+)''')).Groups[1].Value
+          $sha = ([regex]::Match($src, '(?m)^\$script:ManagerSha256 = ''([^'']+)''')).Groups[1].Value
+          if ($tag -ne [string]$mgr.tag -or $sha -ne [string]$mgr.sha256) { throw 'embedded manager pin drifted from approved-releases.json' }
+          $tmp = Join-Path $env:RUNNER_TEMP ('manager-verify-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+          Write-Host "Downloading pinned manager $($mgr.tag)/$($mgr.asset) ..."
+          gh release download $mgr.tag --repo $mgr.repository --pattern $mgr.asset --dir $tmp
+          if ($LASTEXITCODE -ne 0) { throw "pinned manager asset is not published: $($mgr.repository) $($mgr.tag) $($mgr.asset)" }
+          & ./tools/Test-ManagerPayload.ps1 -ZipPath (Join-Path $tmp $mgr.asset) -Version $ver -Sha256 $mgr.sha256
+
+      - name: Publish GitHub Release (second origin for hash cross-check)
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:TAG
+          if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "ref '$tag' is not a version tag (expected vX.Y.Z)" }
+          $ver = (Get-Content -LiteralPath cloudflare/public/version.json -Raw | ConvertFrom-Json).version
+          if ("v$ver" -ne $tag) { throw "tag $tag does not match installer version v$ver" }
+          $assets = @(
+            'cloudflare/public/installer.ps1',
+            'cloudflare/public/setup.ps1',
+            'cloudflare/public/approved-releases.json',
+            'cloudflare/public/SHA256SUMS',
+            'cloudflare/public/version.json'
+          )
+          foreach ($a in $assets) {
+            if (-not (Test-Path -LiteralPath $a -PathType Leaf)) { throw "missing build asset: $a" }
+          }
+          $exists = $true
+          try {
+            gh release view $tag --json tagName --jq .tagName 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) { $exists = $false }
+          } catch { $exists = $false }
+          # Tags are immutable (ruleset immutable-release-tags): never
+          # overwrite an existing release, fail loudly instead.
+          if ($exists) { throw "release $tag already exists; tags are immutable, bump the version instead" }
+          else { gh release create $tag --title $tag --generate-notes --latest $assets }
+
+      - name: Verify published assets (re-download, re-hash against SHA256SUMS)
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:TAG
+          $tmp = Join-Path $env:RUNNER_TEMP ('release-verify-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+          gh release download $tag --dir $tmp --clobber
+          $sums = Get-Content -LiteralPath (Join-Path $tmp 'SHA256SUMS')
+          $checked = 0
+          foreach ($line in $sums) {
+            # The file carries a "# SHA256SUMS for vX.Y.Z (<commit>)" header.
+            if ([string]::IsNullOrWhiteSpace($line) -or ($line.TrimStart().StartsWith('#'))) { continue }
+            $parts = $line -split '\s+', 2
+            if ($parts.Count -lt 2) { throw "malformed SHA256SUMS line: $line" }
+            $hash = $parts[0].Trim().ToLowerInvariant()
+            $name = $parts[1].Trim().TrimStart('*')
+            $file = Join-Path $tmp $name
+            $actual = (Get-FileHash -LiteralPath $file -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+            if ($actual -ne $hash) { throw "published asset $name does not match SHA256SUMS (expected $hash, got $actual)" }
+            $checked++
+          }
+          if ($checked -lt 2) { throw "SHA256SUMS verified only $checked asset(s); refusing to trust an incomplete manifest" }
+          Write-Host "Verified $checked published asset(s) against SHA256SUMS."

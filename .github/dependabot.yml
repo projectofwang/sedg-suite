@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/cloudflare"
+    schedule:
+      interval: "weekly"
+    # `cf` is beta: bump by hand together with a real deploy, never via bot.
+    ignore:
+      - dependency-name: "cf"

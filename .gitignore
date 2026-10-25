@@ -1,0 +1,28 @@
+node_modules/
+cloudflare/public/
+cloudflare/.wrangler/
+cloudflare/.cloudflare/
+# cloudflare/package-lock.json is intentionally committed (reproducible `npm ci`).
+*.log
+.DS_Store
+Thumbs.db
+.env*
+.vscode/
+.idea/
+*.bak
+*~
+
+# Pester -CI scratch output (regenerable)
+testResults.xml
+
+# Integration smoke fixture server root (regenerable)
+tests/integration/site/
+
+# Local agent scratch (regenerable, never commit)
+.archify/
+.slim/
+.ua/
+
+# Truss core maintenance binary
+.truss/core/bin/truss
+.truss/core/bin/truss.exe

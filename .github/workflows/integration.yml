@@ -1,0 +1,69 @@
+name: integration
+
+# Elevated end-to-end smoke on a disposable Windows runner: the real
+# installer runs Install -> Status -> Restart -> Uninstall -Purge against a
+# loopback fixture server, exercising real NSSM/SCM services, the real
+# scheduled task, and real DNS mutation + restore. Components are local
+# stubs built from source (tests/integration/Build-Fixtures.ps1); NSSM is
+# the real pinned release. SHA-256 verification stays enforced end to end;
+# isolation comes from the installer's own seams (SEDG_INSTALL_PATH,
+# SEDG_MANIFEST_URL, SEDG_ASSET_BASE_URL).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 6'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      SEDG_INSTALL_PATH: C:\sedg-integration
+      SEDG_MANIFEST_URL: http://127.0.0.1:18081/approved-releases.json
+      SEDG_ASSET_BASE_URL: http://127.0.0.1:18081
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build fixture assets
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\integration\Build-Fixtures.ps1 -OutDir .\tests\integration\site
+
+      - name: Serve fixtures on loopback
+        shell: powershell
+        run: |
+          Start-Process -FilePath python -ArgumentList '-m','http.server','18081','--bind','127.0.0.1','--directory','tests/integration/site' -WindowStyle Hidden
+          $ok = $false
+          for ($i = 0; $i -lt 20; $i++) {
+            try {
+              Invoke-WebRequest -Uri 'http://127.0.0.1:18081/approved-releases.json' -UseBasicParsing -ErrorAction Stop | Out-Null
+              $ok = $true
+              break
+            } catch { Start-Sleep -Milliseconds 500 }
+          }
+          if (-not $ok) { throw 'fixture server did not come up on 127.0.0.1:18081' }
+
+      - name: Install / Status / Restart / Uninstall (elevated smoke)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\integration\Invoke-Smoke.ps1
+
+      - name: Dump state and logs on failure
+        if: failure()
+        shell: powershell
+        run: |
+          foreach ($dir in @($env:SEDG_INSTALL_PATH, (Join-Path $env:ProgramData 'serverless-edge-dns-gateway'))) {
+            if (Test-Path -LiteralPath $dir) {
+              Get-ChildItem -LiteralPath $dir -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+                Write-Host "----- $($_.FullName) -----"
+                Get-Content -LiteralPath $_.FullName -ErrorAction SilentlyContinue | Select-Object -First 200 | Write-Host
+              }
+            } else {
+              Write-Host "----- missing: $dir -----"
+            }
+          }

@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "policy": "approved-only",
+  "installer": {"version": "1.2.5"},
+  "components": {
+    "dnsproxy": {"repository":"AdguardTeam/dnsproxy","tag":"v0.86.0","asset":"dnsproxy-windows-amd64-v0.86.0.zip","sha256":"dedc186ddd4b96bf92474f91d972f67da0824e0141d09e3102fd96db9f8a0dbc"},
+    "zapret": {"repository":"bol-van/zapret","tag":"v72.13","asset":"zapret-v72.13.zip","sha256":"c493e33a0dc4eba23a8686efdaba55f59755ad6ade3564aebd9d13f4c65e2e0c"},
+    "manager": {"repository":"projectofwang/sedg-suite","tag":"1.2.5","asset":"sedg-manager-win-x64-1.2.5.zip","sha256":"4d9fe051eb8c2770d8ccce514bfba3389ef19d798ac345162285a6d762cd9ee0"},
+    "nssm": {"version":"2.24","asset":"nssm-2.24.zip","url":"https://nssm.cc/release/nssm-2.24.zip","sha256":"727d1e42275c605e0f04aba98095c38a8e1e46def453cdffce42869428aa6743"}
+  }
+}

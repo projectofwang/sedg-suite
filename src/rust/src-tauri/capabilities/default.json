@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The manager window gets core APIs only; no shell, no filesystem, no remote content.",
+  "windows": ["main"],
+  "permissions": ["core:default", "core:window:allow-close"]
+}

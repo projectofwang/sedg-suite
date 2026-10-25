@@ -1,0 +1,127 @@
+name: component-watch
+
+# Weekly upstream check (no GitHub API, no rate limits: follows the
+# /releases/latest redirect). Opens/updates a PR when dnsproxy or zapret
+# has a new tag. A human must review and merge; merging to main deploys.
+#
+# M9: the branch is pushed and the PR is opened with COMPONENT_WATCH_TOKEN
+# (a fine-grained PAT with contents:write + pull-requests:write only, no
+# workflow scope, stored as a repo secret), so CI triggers on the bot PR
+# like on any human PR. Falls back to GITHUB_TOKEN when the secret is
+# missing (then CI must be triggered manually).
+on:
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: component-watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.COMPONENT_WATCH_TOKEN || secrets.GITHUB_TOKEN }}
+      WATCH_BRANCH: auto/component-updates
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ secrets.COMPONENT_WATCH_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Find latest upstream tags
+        id: tags
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function Get-LatestTag([string]$Repo) {
+            $final = & curl.exe -sL -o NUL -w '%{url_effective}' --max-time 60 "https://github.com/$Repo/releases/latest"
+            if ($LASTEXITCODE -ne 0) { throw "Could not resolve latest release for $Repo" }
+            $m = [regex]::Match($final, '/releases/tag/([^/]+)/?$')
+            if (-not $m.Success) { throw "No releases found for $Repo (landed at $final)" }
+            return $m.Groups[1].Value
+          }
+          $dns = Get-LatestTag 'AdguardTeam/dnsproxy'
+          $zap = Get-LatestTag 'bol-van/zapret'
+          "dns=$dns" | Out-File $env:GITHUB_OUTPUT -Append -Encoding ASCII
+          "zap=$zap" | Out-File $env:GITHUB_OUTPUT -Append -Encoding ASCII
+          Write-Host "latest upstream: dnsproxy=$dns zapret=$zap"
+
+      - name: Compare with manifest
+        id: diff
+        shell: powershell
+        env:
+          LATEST_DNS: ${{ steps.tags.outputs.dns }}
+          LATEST_ZAP: ${{ steps.tags.outputs.zap }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath approved-releases.json -Raw | ConvertFrom-Json
+          $needDns = [string]$m.components.dnsproxy.tag -ne $env:LATEST_DNS
+          $needZap = [string]$m.components.zapret.tag -ne $env:LATEST_ZAP
+          Write-Host ("manifest: dnsproxy={0} zapret={1}" -f $m.components.dnsproxy.tag, $m.components.zapret.tag)
+          if ($needDns -or $needZap) { "needed=true" | Out-File $env:GITHUB_OUTPUT -Append -Encoding ASCII }
+          else { Write-Host 'Components already current.' }
+
+      - name: Update manifest + bump patch version
+        if: steps.diff.outputs.needed == 'true'
+        shell: powershell
+        env:
+          LATEST_DNS: ${{ steps.tags.outputs.dns }}
+          LATEST_ZAP: ${{ steps.tags.outputs.zap }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout -B $env:WATCH_BRANCH
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Update-Manifest.ps1 -DnsproxyTag $env:LATEST_DNS -ZapretTag $env:LATEST_ZAP
+          $line = (Select-String -LiteralPath installer.ps1 -Pattern "InstallerVersion = '" | Select-Object -First 1).Line
+          $iv = ($line -replace "^.*'([^']+)'.*", '$1').Trim()
+          $parts = $iv.Split('.')
+          $parts[$parts.Count - 1] = [string]([int]$parts[$parts.Count - 1] + 1)
+          $new = $parts -join '.'
+          $instLines = Get-Content -LiteralPath installer.ps1
+          for ($i = 0; $i -lt $instLines.Count; $i++) {
+            if ($instLines[$i] -match "^\`$script:InstallerVersion = '") {
+              $instLines[$i] = "`$script:InstallerVersion = '$new'"
+              break
+            }
+          }
+          [IO.File]::WriteAllLines((Join-Path (Get-Location) 'installer.ps1'), $instLines, [Text.UTF8Encoding]::new($false))
+          $mj = Get-Content -LiteralPath approved-releases.json -Raw
+          $mj = $mj.Replace('"installer": {"version": "' + $iv + '"}', '"installer": {"version": "' + $new + '"}')
+          [IO.File]::WriteAllText((Join-Path (Get-Location) 'approved-releases.json'), $mj, [Text.UTF8Encoding]::new($false))
+          Write-Host "bumped installer to $new"
+          git add -A
+          git commit -m ("chore: update components dnsproxy $env:LATEST_DNS, zapret $env:LATEST_ZAP (installer $new)") | Out-Null
+          git push --force-with-lease origin $env:WATCH_BRANCH
+
+      - name: Open or update PR
+        if: steps.diff.outputs.needed == 'true'
+        shell: powershell
+        env:
+          LATEST_DNS: ${{ steps.tags.outputs.dns }}
+          LATEST_ZAP: ${{ steps.tags.outputs.zap }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $existing = ''
+          try { $existing = (gh pr list --head $env:WATCH_BRANCH --json number --jq '.[0].number' 2>$null).Trim() } catch { Write-Warning "Could not list existing PR: $($_.Exception.Message)" }
+          if ([string]::IsNullOrWhiteSpace($existing)) {
+            $body = @(
+              'Automated upstream component update (review required before merge).',
+              '',
+              '- CI must be green (syntax, Pester, manifest/schema checks, Cloudflare build).',
+              '- CI runs automatically on this branch (PAT-backed push); merge only when green.',
+              '- Merging to `main` publishes via Cloudflare; user machines pick it up on Update.',
+              '- Verify the new upstream tags and SHA-256 values below against the official release pages.',
+              '- Cross-check: Update-Manifest.ps1 verified each zip opens and contains the expected runtime',
+              '  (dnsproxy.exe / winws.exe / nssm.exe) and pinned its SHA-256.'
+            ) -join "`n"
+            gh pr create --base main --head $env:WATCH_BRANCH --title ("chore: update components dnsproxy $env:LATEST_DNS, zapret $env:LATEST_ZAP") --body $body
+          } else {
+            Write-Host "Updated existing PR #$existing"
+          }

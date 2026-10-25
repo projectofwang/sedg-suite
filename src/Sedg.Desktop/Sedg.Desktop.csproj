@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Sedg.Desktop</RootNamespace>
+    <AssemblyName>Sedg.Desktop</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- VI must ship: NET Core SDK defaults SatelliteResourceLanguages to en only. -->
+    <SatelliteResourceLanguages>en;vi</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sedg.Protocol\Sedg.Protocol.csproj" />
+  </ItemGroup>
+
+  <!-- Task 5 test seams: internal constructors are visible to the test project only. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sedg.UnitTests" />
+  </ItemGroup>
+
+</Project>

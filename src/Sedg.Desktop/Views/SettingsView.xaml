@@ -1,0 +1,28 @@
+<UserControl x:Class="Sedg.Desktop.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+    <StackPanel Margin="16" MaxWidth="720" HorizontalAlignment="Left">
+        <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="Bold" Margin="0,0,0,14" />
+
+        <TextBlock Text="{Binding LanguageLabel}" FontWeight="SemiBold" Margin="0,0,0,4" />
+        <RadioButton Content="{Binding EnglishLabel}" GroupName="AppLanguage"
+                     IsChecked="{Binding LanguageEn, Mode=TwoWay}" Margin="0,2,0,2" />
+        <RadioButton Content="{Binding VietnameseLabel}" GroupName="AppLanguage"
+                     IsChecked="{Binding LanguageVi, Mode=TwoWay}" Margin="0,2,0,2" />
+        <TextBlock Text="{Binding LanguageNote}" FontStyle="Italic" FontSize="12" Margin="0,4,0,14" TextWrapping="Wrap" />
+
+        <TextBlock Text="{Binding DataFolderLabel}" FontWeight="SemiBold" Margin="0,0,0,4" />
+        <TextBlock Text="{Binding DataFolderPath}" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,14" />
+
+        <TextBlock Text="{Binding LogsLabel}" FontWeight="SemiBold" Margin="0,0,0,4" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+            <Button Content="{Binding OpenAppLogLabel}" Padding="12,4" Margin="0,0,8,0"
+                    Command="{Binding OpenAppLogCommand}" />
+            <Button Content="{Binding OpenOperationsLabel}" Padding="12,4"
+                    Command="{Binding OpenOperationsCommand}" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

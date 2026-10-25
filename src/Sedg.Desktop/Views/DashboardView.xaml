@@ -1,0 +1,56 @@
+<UserControl x:Class="Sedg.Desktop.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+    <DockPanel Margin="12">
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+            <Button HorizontalAlignment="Right"
+                    Content="{Binding RefreshLabel}"
+                    Command="{Binding RefreshCommand}"
+                    Padding="12,4" />
+        </Grid>
+
+        <!-- Refresh failure banner (criterion 1): shown only on a failed refresh. -->
+        <TextBlock DockPanel.Dock="Top" Text="{Binding StatusText}" Foreground="#B3261E"
+                   TextWrapping="Wrap" Margin="0,0,0,8"
+                   Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+
+        <!-- Eight fixed REQ-004 rows; unknown probes muted with their reason, never guessed (criterion 7). -->
+        <ItemsControl ItemsSource="{Binding Rows}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border BorderBrush="#EAEAEA" BorderThickness="0,0,0,1" Padding="0,8">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsUnknown}" Value="True">
+                                        <Setter Property="Opacity" Value="0.65" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Top" />
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding Value}" TextWrapping="Wrap"
+                                           Visibility="{Binding HasValue, Converter={StaticResource BoolToVis}}" />
+                                <TextBlock Text="{Binding Reason}" Foreground="#707070" FontSize="12" TextWrapping="Wrap"
+                                           Visibility="{Binding IsUnknown, Converter={StaticResource BoolToVis}}" />
+                                <TextBlock
+                                    Text="{Binding DataContext.NotApplicableText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Foreground="#707070" FontStyle="Italic" FontSize="12"
+                                    Visibility="{Binding IsNotApplicable, Converter={StaticResource BoolToVis}}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DockPanel>
+</UserControl>
