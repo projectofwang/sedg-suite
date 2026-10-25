@@ -1,7 +1,7 @@
 {
   "private": true,
   "devDependencies": {
-    "wrangler": "4.150.0"
+    "wrangler": "4.152.0"
   },
   "scripts": {
     "build:cloudflare": "bash cloudflare/build.sh",
