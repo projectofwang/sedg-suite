@@ -1,0 +1,179 @@
+<UserControl x:Class="Sedg.Desktop.Views.OperationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:Sedg.Desktop.Views">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <views:InverseBooleanConverter x:Key="InverseBool" />
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="16" MaxWidth="760" HorizontalAlignment="Left">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="{Binding StageText}" FontSize="15" FontWeight="Bold" Margin="0,0,0,10" />
+
+            <!-- ============================== INPUT (§5.2) ============================== -->
+            <StackPanel Grid.Row="1" Visibility="{Binding IsInput, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding ChooseActionLabel}" Margin="0,0,0,6" />
+                <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Chosen}"
+                          DisplayMemberPath="Name"
+                          Width="320" HorizontalAlignment="Left" Margin="0,0,0,14" />
+
+                <!-- Install mode -->
+                <StackPanel Visibility="{Binding IsInstallModeForm, Converter={StaticResource BoolToVis}}" Margin="0,0,0,14">
+                    <TextBlock Text="{Binding InstallModeLabel}" Margin="0,0,0,4" />
+                    <CheckBox Content="{Binding InstallModeCleanLabel}"
+                              IsChecked="{Binding InstallClean, Mode=TwoWay}" />
+                </StackPanel>
+
+                <!-- Upstream mode / URL -->
+                <StackPanel Visibility="{Binding IsUpstreamForm, Converter={StaticResource BoolToVis}}" Margin="0,0,0,14">
+                    <TextBlock Text="{Binding UpstreamKindLabel}" Margin="0,0,0,4" />
+                    <RadioButton Content="{Binding UpstreamDefaultsLabel}" GroupName="UpstreamKind"
+                                 IsChecked="{Binding UpstreamCustom, Mode=OneWay, Converter={StaticResource InverseBool}}" Margin="0,2,0,2" />
+                    <RadioButton x:Name="UpstreamCustomRadio" Content="{Binding UpstreamCustomLabel}" GroupName="UpstreamKind"
+                                 IsChecked="{Binding UpstreamCustom, Mode=TwoWay}" Margin="0,2,0,2" />
+                    <TextBlock Text="{Binding UpstreamUrlLabel}" Margin="12,8,0,4"
+                               Visibility="{Binding UpstreamCustom, Converter={StaticResource BoolToVis}}" />
+                    <TextBox Text="{Binding UpstreamUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Width="420" HorizontalAlignment="Left" Margin="12,0,0,2"
+                             Visibility="{Binding UpstreamCustom, Converter={StaticResource BoolToVis}}" />
+                    <TextBlock Text="{Binding UpstreamUrlError}" Foreground="#B3261E" FontSize="12" TextWrapping="Wrap" Margin="12,2,0,0"
+                               Visibility="{Binding UpstreamCustom, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+
+                <!-- DNS servers -->
+                <StackPanel Visibility="{Binding IsDnsForm, Converter={StaticResource BoolToVis}}" Margin="0,0,0,14">
+                    <TextBlock Text="{Binding DnsServersLabel}" Margin="0,0,0,4" />
+                    <TextBox Text="{Binding DnsServers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Width="420" HorizontalAlignment="Left" Margin="0,0,0,2" />
+                    <TextBlock Text="{Binding DnsServersError}" Foreground="#B3261E" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
+                </StackPanel>
+
+                <!-- Engine language -->
+                <StackPanel Visibility="{Binding IsLanguageForm, Converter={StaticResource BoolToVis}}" Margin="0,0,0,14">
+                    <RadioButton Content="{Binding LanguageEnLabel}" GroupName="OpLanguage"
+                                 IsChecked="{Binding LanguageEn, Mode=TwoWay}" Margin="0,2,0,2" />
+                    <RadioButton Content="{Binding LanguageViLabel}" GroupName="OpLanguage"
+                                 IsChecked="{Binding LanguageVi, Mode=TwoWay}" Margin="0,2,0,2" />
+                </StackPanel>
+
+                <!-- Validation title -->
+                <TextBlock Text="{Binding ValidationTitle}" Foreground="#B3261E" TextWrapping="Wrap" Margin="0,0,0,6" />
+
+                <!-- Preflight blockers (criterion 5 remedy display; blocks Continue) -->
+                <ItemsControl ItemsSource="{Binding PreflightBlockers}" Foreground="#B3261E" FontSize="12">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,1,0,1" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Button Content="{Binding ContinueLabel}" Padding="16,5" HorizontalAlignment="Left" Margin="0,10,0,0"
+                        IsDefault="True"
+                        Command="{Binding ContinueCommand}" />
+            </StackPanel>
+
+            <!-- ============================== REVIEW (§5.2) ============================== -->
+            <StackPanel Grid.Row="1" Visibility="{Binding IsReview, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding ReviewScopeLabel}" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <ItemsControl ItemsSource="{Binding Scope}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="• " />
+                                <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding ReviewNoteLabel}" FontStyle="Italic" Margin="0,10,0,0"
+                           Visibility="{Binding ReviewNoteVisible, Converter={StaticResource BoolToVis}}" />
+                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                    <!-- Destructive review: the focused/default button is the non-destructive one (criterion 5). -->
+                    <Button x:Name="ReviewCancelButton" Content="{Binding BackLabel}" Padding="16,5" Margin="0,0,8,0"
+                            Command="{Binding BackCommand}"
+                            IsDefault="{Binding ReviewDestructive}" />
+                    <Button x:Name="ReviewConfirmButton" Content="{Binding ConfirmLabel}" Padding="16,5"
+                            Command="{Binding ConfirmCommand}"
+                            IsDefault="{Binding ReviewDestructive, Converter={StaticResource InverseBool}}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- ============================== PROGRESS (§5.2) ============================== -->
+            <StackPanel Grid.Row="1" Visibility="{Binding IsProgress, Converter={StaticResource BoolToVis}}">
+                <TextBlock FontWeight="SemiBold" Margin="0,0,0,6">
+                    <Run Text="{Binding CurrentPhase, Mode=OneWay}" />
+                </TextBlock>
+                <Border BorderBrush="#EAEAEA" BorderThickness="1" Padding="8" MaxHeight="320">
+                    <ListBox ItemsSource="{Binding Phases}"
+                             FontSize="12" FontFamily="Consolas"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </Border>
+                <Button Content="{Binding CancelLabel}" Padding="16,5" HorizontalAlignment="Left" Margin="0,10,0,0"
+                        Command="{Binding CancelRunCommand}" />
+            </StackPanel>
+
+            <!-- ============================== RESULT (§5.2) ============================== -->
+            <StackPanel Grid.Row="1" Visibility="{Binding IsResult, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding ResultTitle}" FontSize="16" FontWeight="Bold" Margin="0,0,0,8" />
+                <TextBlock Text="{Binding ResultMessage}" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,2"
+                            Visibility="{Binding IsOutcomeFailed, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding CodeLabel}" FontWeight="SemiBold" />
+                    <TextBlock Text=" " />
+                    <TextBlock Text="{Binding ResultCodeText}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,2"
+                            Visibility="{Binding HasCurrentState, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding StateLabel}" FontWeight="SemiBold" />
+                    <TextBlock Text=" " />
+                    <TextBlock Text="{Binding CurrentStateValue}" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,2"
+                            Visibility="{Binding HasRestoredState, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding RestoredLabel}" FontWeight="SemiBold" />
+                    <TextBlock Text=" " />
+                    <TextBlock Text="{Binding RestoredStateValue}" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,2"
+                            Visibility="{Binding HasNextStep, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding NextStepLabel}" FontWeight="SemiBold" />
+                    <TextBlock Text=" " />
+                    <TextBlock Text="{Binding NextStepValue}" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <TextBlock Text="{Binding IncompleteNoteLabel}" Foreground="#B3261E" TextWrapping="Wrap" Margin="0,6,0,0"
+                           Visibility="{Binding IsIncompleteVisible, Converter={StaticResource BoolToVis}}" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
+                            Visibility="{Binding HasLogPath, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding LogPathLabel}" FontWeight="SemiBold" />
+                    <TextBlock Text=" " />
+                    <TextBlock Text="{Binding LogPathValue}" TextWrapping="Wrap" MaxWidth="340" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <Button Content="{Binding OpenLogLabel}" Padding="16,5" Margin="0,0,8,0"
+                            Visibility="{Binding HasLogPath, Converter={StaticResource BoolToVis}}"
+                            Command="{Binding OpenLogCommand}" />
+                    <Button Content="{Binding CopyLabel}" Padding="16,5" Margin="0,0,8,0"
+                            Command="{Binding CopyDetailsCommand}" />
+                    <Button Content="{Binding CloseLabel}" Padding="16,5"
+                            Command="{Binding CloseResultCommand}" IsDefault="True" />
+                </StackPanel>
+                <TextBlock Text="{Binding CopiedNoteLabel}" FontStyle="Italic" FontSize="12" Margin="0,6,0,0"
+                           Visibility="{Binding HasCopiedNote, Converter={StaticResource BoolToVis}}" />
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

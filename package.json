@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "devDependencies": {
+    "wrangler": "4.150.0"
+  },
+  "scripts": {
+    "build:cloudflare": "bash cloudflare/build.sh",
+    "build:cf": "bash cloudflare/build.sh && cd cloudflare && node node_modules/wrangler/bin/cf-wrangler.js build",
+    "deploy:cf:dry": "npm run build:cf && cd cloudflare && npx --no-install cf deploy --prebuilt --dry-run",
+    "deploy:cf": "npm run build:cf && cd cloudflare && npx --no-install cf deploy --prebuilt",
+    "test": "powershell -NoProfile -ExecutionPolicy Bypass -Command Invoke-Pester ./tests -CI"
+  }
+}

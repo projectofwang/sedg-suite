@@ -1,0 +1,44 @@
+[package]
+name = "sedg-manager"
+version = "2.0.0"
+edition = "2021"
+rust-version = "1.99"
+description = "SEDG Manager: one-command install and management for the Serverless Edge DNS Gateway."
+license = "MIT"
+publish = false
+
+[lib]
+name = "sedg_manager"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sedg-manager"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = "2.7.4"
+
+[dependencies]
+tauri = "2.12.5"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+time = { version = "0.3.55", features = ["formatting", "parsing", "local-offset"] }
+url = "2.5.8"
+uuid = { version = "1.29.0", features = ["v4"] }
+windows-sys = { version = "0.61.2", features = [
+  "Win32_Foundation",
+  "Win32_Networking_WinHttp",
+  "Win32_Networking_WinInet",
+  "Win32_Security",
+  "Win32_Security_Authorization",
+  "Win32_Security_Cryptography",
+  "Win32_Storage_FileSystem",
+  "Win32_System_IO",
+  "Win32_System_LibraryLoader",
+  "Win32_System_Pipes",
+  "Win32_System_Registry",
+  "Win32_System_SystemInformation",
+  "Win32_System_Threading",
+  "Win32_UI_Shell",
+  "Win32_UI_WindowsAndMessaging",
+] }

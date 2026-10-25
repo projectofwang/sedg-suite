@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Serverless Edge DNS Gateway + Zapret — Install</title>
+<link rel="icon" href="/favicon.svg">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #05070d;
+    --panel: #0c101b;
+    --panel-2: #080b12;
+    --line: #1c2333;
+    --line-2: #2c3650;
+    --text: #eef1f7;
+    --muted: #98a2b8;
+    --dim: #7d88a0;
+    --accent: #a78bfa;
+    --accent-soft: rgba(167,139,250,.12);
+    --blue: #2563eb;
+    --green: #6ee7b7;
+    --sky: #7dd3fc;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: "Cascadia Code", "JetBrains Mono", ui-monospace, Consolas, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  ::selection { background: rgba(167,139,250,.35); }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text);
+    font-family: var(--sans); line-height: 1.55; padding: 0 20px 64px;
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(1000px 480px at 50% -8%, rgba(124,93,250,.16), transparent 62%),
+      radial-gradient(800px 500px at 100% 110%, rgba(37,99,235,.12), transparent 60%),
+      linear-gradient(rgba(255,255,255,.024) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.024) 1px, transparent 1px);
+    background-size: auto, auto, 36px 36px, 36px 36px;
+    background-attachment: fixed;
+  }
+  .wrap { width: 100%; max-width: 880px; margin: 0 auto; position: relative; z-index: 1; }
+  #sky { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+
+
+
+  /* top bar */
+  .nav {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 18px 2px;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .05em; color: var(--green);
+    background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.38);
+    border-radius: 999px; padding: 5px 13px;
+  }
+  .badge::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,.9);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  .ctrl { display: flex; align-items: center; gap: 8px; }
+  .gh {
+    display: inline-flex; align-items: center; gap: 7px; text-decoration: none;
+    border: 1px solid var(--line-2); background: rgba(255,255,255,.035);
+    color: var(--text); border-radius: 8px; padding: 7px 13px; font-size: 12.5px;
+    transition: border-color .15s, background .15s, transform .15s;
+  }
+  .gh svg { flex: none; opacity: .9; }
+  .gh:hover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-1px); }
+  .gh:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .lang {
+    display: flex; gap: 3px; padding: 3px;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px;
+  }
+  .lang button {
+    cursor: pointer; border: 0; background: transparent; color: var(--muted);
+    border-radius: 6px; padding: 5px 12px; font: inherit; font-size: 12px;
+    letter-spacing: .06em; transition: background .15s, color .15s;
+  }
+  .lang button:hover { color: var(--text); }
+  .lang button.active { background: var(--blue); color: #fff; box-shadow: 0 2px 8px -2px rgba(37,99,235,.8); }
+
+  /* hero */
+  .hero { text-align: left; padding: 44px 2px 8px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0; letter-spacing: -.025em; font-weight: 750; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 12px 0 0; max-width: 56ch; }
+  .install { margin-top: 22px; }
+
+  /* command rows */
+  .cmd {
+    display: flex; gap: 10px; align-items: stretch;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 10px 10px 10px 14px; transition: border-color .15s;
+    font-family: var(--mono);
+  }
+  .cmd:hover { border-color: var(--line-2); }
+  .cmd.hero {
+    border-color: rgba(167,139,250,.55);
+    background: linear-gradient(180deg, rgba(124,93,250,.14), rgba(124,93,250,.05));
+    box-shadow: 0 0 0 3px rgba(124,93,250,.12), 0 12px 32px -14px rgba(124,93,250,.8);
+    padding: 14px 14px 14px 16px;
+  }
+  .cmd code {
+    flex: 1 1 auto; min-width: 0; align-self: center;
+    overflow-x: auto; white-space: nowrap; font-size: 13.5px; color: #f0f3f9;
+    scrollbar-width: thin; scrollbar-color: #2b3448 transparent;
+  }
+  .cmd code::-webkit-scrollbar { height: 6px; }
+  .cmd code::-webkit-scrollbar-thumb { background: #2b3448; border-radius: 99px; }
+  button.copy {
+    flex: none; cursor: pointer; color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 600;
+    letter-spacing: .02em; border: 1px solid #8b5cf6; border-radius: 8px; padding: 8px 18px;
+    background: linear-gradient(180deg, #8b5cf6, #7c3aed);
+    box-shadow: 0 2px 12px -4px rgba(139,92,246,.9);
+    transition: filter .15s, transform .1s;
+  }
+  button.copy:hover { filter: brightness(1.15); }
+  button.copy:active { transform: translateY(1px); }
+
+  /* sections */
+  .sec-label {
+    display: flex; align-items: baseline; gap: 12px; margin: 40px 2px 14px;
+  }
+  .sec-label .no {
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    border: 1px solid rgba(167,139,250,.4); background: var(--accent-soft);
+    border-radius: 6px; padding: 2px 8px; letter-spacing: .08em;
+  }
+  .sec-label .t { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .step-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+    transition: border-color .15s;
+  }
+  .step-card:hover { border-color: var(--line-2); }
+  .step-card .row { display: flex; align-items: center; gap: 8px; }
+  .step {
+    flex: none; width: 22px; height: 22px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-family: var(--mono);
+    color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(167,139,250,.4);
+  }
+  .step-card .hint { font-size: 11.5px; color: var(--dim); line-height: 1.5; }
+  .step-card .cmd { padding: 8px 8px 8px 10px; }
+  .step-card .cmd code { font-size: 11.5px; }
+  .step-card button.copy { width: 100%; margin-top: auto; }
+
+  /* notes */
+  .hash { font-size: 11px; line-height: 1.65; color: var(--dim); word-break: break-all; margin: 16px 2px 0; font-family: var(--mono); }
+  #sha:empty { display: none; }
+  #cross {
+    border-left: 2px solid rgba(167,139,250,.45); border-radius: 0 8px 8px 0;
+    background: rgba(167,139,250,.06); padding: 10px 14px; margin: 16px 2px 0;
+  }
+  #cross a { color: var(--sky); text-decoration: none; }
+  #cross a:hover { text-decoration: underline; }
+  #sha {
+    display: block; background: var(--panel-2); border: 1px dashed var(--line-2);
+    border-radius: 8px; padding: 8px 12px; margin: 14px 2px 0; letter-spacing: .02em;
+  }
+
+  /* files */
+  .files { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 2px 0; }
+  .files a {
+    font-size: 12px; font-family: var(--mono); color: var(--sky); text-decoration: none;
+    border: 1px solid var(--line); background: rgba(125,211,252,.05);
+    border-radius: 7px; padding: 5px 11px;
+    transition: border-color .15s, background .15s, transform .15s;
+  }
+  .files a:hover { border-color: rgba(125,211,252,.5); background: rgba(125,211,252,.13); transform: translateY(-1px); }
+
+  /* footer */
+  .foot {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+    margin: 30px 2px 0; padding-top: 16px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--dim); line-height: 1.6;
+  }
+  .foot a { color: var(--sky); text-decoration: none; }
+  .foot a:hover { text-decoration: underline; }
+
+  /* side verses (variant C): fixed in gutters, take no flow space */
+  .w { display: inline-block; }
+  .side {
+    position: fixed; top: 50%; transform: translateY(-50%); z-index: 1;
+    width: clamp(200px, 16vw, 300px);
+    pointer-events: none;
+  }
+  .side--l { left: clamp(10px, 1.4vw, 30px); }
+  .side--r { right: clamp(10px, 1.4vw, 30px); }
+  @media (max-width: 1199px) { .side { display: none; } }
+  .verse {
+    margin: 0 0 .3em;
+    font-family: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, "Times New Roman", serif;
+    font-weight: 400; font-size: 25px; line-height: 1.3;
+    letter-spacing: .05em; word-spacing: .3em;
+    color: rgba(196,181,253,.85); text-transform: uppercase;
+  }
+  .verse + .verse { margin-top: 1em; }
+  .verse .w { animation: fadeUp .9s cubic-bezier(.16,.84,.24,1) backwards; animation-delay: calc(var(--i) * 55ms + var(--n, 0ms)); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(.3em); } }
+  .side .credit {
+    display: flex; align-items: center; gap: 10px; margin-top: 22px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+    color: rgba(196,181,253,.55);
+  }
+  .side .credit::before {
+    content: ""; flex: 1; border-top: 1px dashed rgba(196,181,253,.32);
+  }
+
+  /* entrance */
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .wrap > * { animation: rise .5s cubic-bezier(.2,.7,.3,1) both; }
+  .wrap > *:nth-child(2) { animation-delay: .08s; }
+  .wrap > *:nth-child(3) { animation-delay: .16s; }
+  .wrap > *:nth-child(4) { animation-delay: .24s; }
+  .wrap > *:nth-child(5) { animation-delay: .3s; }
+
+  /* Desktop-only vertical tightening: trims whitespace so the page fits closer to one screen.
+     Type scale, chips and the 104px mascots are untouched; mobile keeps its airy rhythm below. */
+  @media (min-width: 721px) {
+    body { padding-bottom: 44px; }
+    .nav { padding: 10px 2px; }
+    .hero { padding: 26px 2px 4px; }
+    .install { margin-top: 18px; }
+    .sec-label { margin: 28px 2px 14px; }
+    .hash { margin-top: 12px; }
+    #sha { margin-top: 10px; }
+    .foot { margin-top: 26px; padding-top: 12px; }
+  }
+
+  @media (max-width: 720px) {
+    .steps { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    body { padding: 0 14px 40px; }
+    h1 { font-size: 26px; }
+    .sub { font-size: 13.5px; }
+    .foot { flex-direction: column; align-items: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wrap > *, .w { animation: none; }
+    .badge::before { animation: none; }
+    .w { opacity: 1 !important; transform: none !important; }
+    * { transition: none !important; }
+  }
+
+  /* page-mascot pack (fox-ink, cat, hedgehog, otter, sloth) — in the flow, right of the upstream chips */
+  .upstream { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px 18px; }
+  .pack { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 6px; }
+  /* chips stay pinned at the top (16px under the label); each mascot's 73px of extra height is
+     cancelled by negative margins top+bottom, so the row stays 31px tall and the sprites
+     overflow equally above and below — optically centred on the chip band. */
+  .mascot { flex: 0 0 auto; z-index: 5; margin: -40px 0 -33px 0;
+    width: 104px; height: 104px; background: none; border: 0; padding: 0; cursor: pointer;
+    filter: drop-shadow(0 14px 26px rgba(0,0,0,.5)); transition: transform .18s cubic-bezier(.2,.7,.3,1); }
+  .mascot:hover { transform: translateY(-2px); }
+  .squash { display: block; position: relative; width: 100%; height: 100%; }
+  .squash span { position: absolute; inset: 0; background-size: 300% 300%; background-repeat: no-repeat; }
+  .lyr-dir { opacity: 1; }
+  .lyr-react { opacity: 0; }
+  @media (max-width: 830px) { .mascot { width: 68px; height: 68px; margin: -20px 0 -17px 0; } }
+  @media (max-width: 620px) { .mascot--opt { display: none; } }
+  @media (max-width: 420px) { .pack { display: none; } }
+</style>
+</head>
+<body>
+  <canvas id="sky" aria-hidden="true"></canvas>
+  <aside class="side side--l" aria-hidden="true">
+    <p class="verse" data-spread>ĐẠO KHẢ ĐẠO</p>
+    <p class="verse" data-spread>PHI THƯỜNG ĐẠO</p>
+    <p class="verse" data-spread>DANH KHẢ DANH</p>
+    <p class="verse" data-spread>PHI THƯỜNG DANH</p>
+    <span class="credit">trích từ Lão Tử</span>
+  </aside>
+  <aside class="side side--r" aria-hidden="true">
+    <p class="verse" data-spread>NHÂN PHÁP ĐỊA</p>
+    <p class="verse" data-spread>ĐỊA PHÁP THIÊN</p>
+    <p class="verse" data-spread>THIÊN PHÁP ĐẠO</p>
+    <p class="verse" data-spread>ĐẠO PHÁP TỰ NHIÊN</p>
+    <span class="credit">trích từ Đạo Đức Kinh</span>
+  </aside>
+  <noscript>
+    <div style="max-width:880px;margin:12px auto 0;padding:10px 14px;border:1px solid #2c3650;border-radius:8px;font:13px/1.5 system-ui,sans-serif;color:#98a2b8;">
+      JavaScript is off: the version badge is unavailable and copy buttons are inert, but every command on this page works as plain text. /
+      JavaScript đang tắt: không thấy phiên bản và nút sao chép không hoạt động, nhưng mọi lệnh trên trang vẫn dùng được bình thường.
+    </div>
+  </noscript>
+  <div class="wrap">
+    <div class="nav">
+      <div class="badge" id="ver">version: loading…</div>
+      <div class="ctrl">
+        <a class="gh" href="https://github.com/projectofwang/sedg-suite" target="_blank" rel="noopener" aria-label="GitHub repository">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span>GitHub</span>
+        </a>
+        <div class="lang">
+          <button id="lang-vi" type="button" aria-pressed="true">VI</button>
+          <button id="lang-en" type="button" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Serverless Edge DNS Gateway <em>+ Zapret</em></h1>
+      <div class="sub" data-en="Local DoH proxy (127.0.0.1) with DPI bypass — Windows auto installer" data-vi="Proxy DoH nội bộ (127.0.0.1) vượt DPI — Trình cài tự động cho Windows">Local DoH proxy (127.0.0.1) with DPI bypass — Windows auto installer</div>
+      <div class="install">
+        <div class="cmd hero">
+          <code id="cmd">irm https://dl.taiyuanwangjie.dpdns.org/setup.ps1 | iex</code>
+          <button id="copy" class="copy" type="button" data-en="Copy" data-vi="Sao chép">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-label"><span class="no">01</span><span class="t" data-en="Verify before running (optional)" data-vi="Kiểm tra trước khi chạy (tùy chọn)">Verify before running (optional)</span></div>
+    <div class="steps">
+      <div class="step-card">
+        <div class="row"><span class="step">1</span><span class="hint" data-en="Download the launcher" data-vi="Tải trình khởi chạy">Download the launcher</span></div>
+        <div class="cmd">
+          <code id="cmd2">Invoke-WebRequest https://dl.taiyuanwangjie.dpdns.org/setup.ps1 -OutFile setup.ps1 -UseBasicParsing</code>
+        </div>
+        <button id="copy2" class="copy" type="button" data-en="Copy" data-vi="Sao chép">Copy</button>
+      </div>
+      <div class="step-card">
+        <div class="row"><span class="step">2</span><span class="hint" data-en="Cross-check hash via GitHub" data-vi="Đối chiếu mã qua GitHub">Cross-check hash via GitHub</span></div>
+        <div class="cmd">
+          <code id="cmd3">$h = ((Invoke-RestMethod https://github.com/projectofwang/sedg-suite/releases/latest/download/SHA256SUMS -UseBasicParsing) -split "`n" | Where-Object { $_ -match 'setup\.ps1' }) -split '\s+' | Select-Object -First 1; if ((Get-FileHash setup.ps1 -Algorithm SHA256).Hash.ToLower() -ne $h) { throw 'SHA-256 mismatch' } 'hash OK'</code>
+        </div>
+        <button id="copy3" class="copy" type="button" data-en="Copy" data-vi="Sao chép">Copy</button>
+      </div>
+      <div class="step-card">
+        <div class="row"><span class="step">3</span><span class="hint" data-en="Run it" data-vi="Chạy cài">Run it</span></div>
+        <div class="cmd">
+          <code id="cmd4">powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1</code>
+        </div>
+        <button id="copy4" class="copy" type="button" data-en="Copy" data-vi="Sao chép">Copy</button>
+      </div>
+    </div>
+    <div class="hash" id="cross">Cross-check: compare the hash above with <a href="https://github.com/projectofwang/sedg-suite/releases/latest/download/SHA256SUMS">GitHub Releases SHA256SUMS</a> (different origin) before running.</div>
+
+    <div class="sec-label"><span class="no">02</span><span class="t" data-en="Published files" data-vi="Tệp đã xuất bản">Published files</span></div>
+    <div class="files">
+      <a href="/setup.ps1">setup.ps1</a>
+      <a href="/installer.ps1">installer.ps1</a>
+      <a href="/approved-releases.json">approved-releases.json</a>
+      <a href="/version.json">version.json</a>
+      <a href="/SHA256SUMS">SHA256SUMS</a>
+    </div>
+
+    <div class="hash" id="sha"></div>
+
+    <div class="sec-label"><span class="no">03</span><span class="t" data-en="Upstream components" data-vi="Thành phần upstream">Upstream components</span></div>
+    <div class="upstream">
+      <div class="files">
+        <a href="https://github.com/AdguardTeam/dnsproxy" target="_blank" rel="noopener">dnsproxy</a>
+        <a href="https://github.com/bol-van/zapret" target="_blank" rel="noopener">zapret</a>
+        <a href="https://nssm.cc/" target="_blank" rel="noopener">nssm</a>
+      </div>
+      <div class="pack">
+        <button class="mascot" type="button" aria-label="Boop the fox">
+          <span class="squash"><span class="lyr-dir" style="background-image:url(/mascots/fox-ink-directions.webp)"></span><span class="lyr-react" style="background-image:url(/mascots/fox-ink-reactions.webp)"></span></span>
+        </button>
+        <button class="mascot" type="button" aria-label="Boop the cat">
+          <span class="squash"><span class="lyr-dir" style="background-image:url(/mascots/cat-directions.webp)"></span><span class="lyr-react" style="background-image:url(/mascots/cat-reactions.webp)"></span></span>
+        </button>
+        <button class="mascot mascot--opt" type="button" aria-label="Boop the hedgehog">
+          <span class="squash"><span class="lyr-dir" style="background-image:url(/mascots/hedgehog-directions.webp)"></span><span class="lyr-react" style="background-image:url(/mascots/hedgehog-reactions.webp)"></span></span>
+        </button>
+        <button class="mascot mascot--opt" type="button" aria-label="Boop the otter">
+          <span class="squash"><span class="lyr-dir" style="background-image:url(/mascots/otter-directions.webp)"></span><span class="lyr-react" style="background-image:url(/mascots/otter-reactions.webp)"></span></span>
+        </button>
+        <button class="mascot mascot--opt" type="button" aria-label="Boop the sloth">
+          <span class="squash"><span class="lyr-dir" style="background-image:url(/mascots/sloth-directions.webp)"></span><span class="lyr-react" style="background-image:url(/mascots/sloth-reactions.webp)"></span></span>
+        </button>
+      </div>
+    </div>
+    <div class="foot">
+      <span><span data-en="Thanks to " data-vi="Cảm ơn ">Thanks to </span><a href="https://github.com/BIBICADOTNET" target="_blank" rel="noopener">BIBICADOTNET</a><span data-en=" for the original script and concept." data-vi=" vì script và ý tưởng gốc."> for the original script and concept.</span></span>
+    </div>
+  </div>
+
+<script>
+/* Split side verses into WORD spans (spaces stay real text nodes). */
+(function () {
+  var i = 0;
+  function walk(node) {
+    Array.prototype.forEach.call(node.childNodes, function (child) {
+      if (child.nodeType === 3) {
+        if (!child.textContent.trim()) return;
+        var tokens = child.textContent.match(/\s+|\S+/g) || [];
+        var frag = document.createDocumentFragment();
+        tokens.forEach(function (tk) {
+          if (/^\s+$/.test(tk)) { frag.appendChild(document.createTextNode(tk)); return; }
+          var s = document.createElement('span');
+          s.className = 'w'; s.textContent = tk;
+          s.style.setProperty('--i', i++);
+          frag.appendChild(s);
+        });
+        node.replaceChild(frag, child);
+      } else if (child.nodeType === 1) { walk(child); }
+    });
+  }
+  var els = document.querySelectorAll('[data-spread]');
+  for (var k = 0; k < els.length; k++) { walk(els[k]); }
+})();
+</script>
+<script>
+(function () {
+  var STR = {
+    en: { loading: 'version: loading…', unavailable: 'version: unavailable', copied: 'Copied' },
+    vi: { loading: 'phiên bản: đang tải…', unavailable: 'phiên bản: không khả dụng', copied: 'Đã chép' }
+  };
+  var lang = 'vi';
+  try { lang = localStorage.getItem('sedg-lang') || 'vi'; } catch (e) {}
+  if (lang !== 'en') { lang = 'vi'; }
+  var meta = null;
+
+  function t(key) { return STR[lang][key]; }
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    var els = document.querySelectorAll('[data-en]');
+    for (var i = 0; i < els.length; i++) {
+      var v = els[i].getAttribute(lang === 'vi' ? 'data-vi' : 'data-en');
+      if (v !== null) { els[i].textContent = v; }
+    }
+    document.getElementById('lang-en').className = lang === 'en' ? 'active' : '';
+    document.getElementById('lang-vi').className = lang === 'vi' ? 'active' : '';
+    document.getElementById('lang-en').setAttribute('aria-pressed', lang === 'en' ? 'true' : 'false');
+    document.getElementById('lang-vi').setAttribute('aria-pressed', lang === 'vi' ? 'true' : 'false');
+    renderVer();
+  }
+
+  function renderVer() {
+    var el = document.getElementById('ver');
+    if (!meta) { el.textContent = t('loading'); return; }
+    var label = lang === 'vi' ? 'phiên bản: ' : 'version: ';
+    el.textContent = label + meta.version + '  ·  ' + String(meta.commit).slice(0, 7);
+  }
+
+  function setLang(l) {
+    lang = l === 'en' ? 'en' : 'vi';
+    try { localStorage.setItem('sedg-lang', lang); } catch (e) {}
+    applyLang();
+  }
+
+  function copy(id, btn) {
+    var txt = document.getElementById(id).textContent;
+    function done() {
+      btn.textContent = t('copied');
+      setTimeout(function () {
+        var v = btn.getAttribute(lang === 'vi' ? 'data-vi' : 'data-en');
+        btn.textContent = v !== null ? v : txt;
+      }, 1500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function () { fallback(); });
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  }
+  document.getElementById('copy').onclick = function () { copy('cmd', this); };
+  document.getElementById('copy2').onclick = function () { copy('cmd2', this); };
+  document.getElementById('copy3').onclick = function () { copy('cmd3', this); };
+  document.getElementById('copy4').onclick = function () { copy('cmd4', this); };
+  document.getElementById('lang-en').onclick = function () { setLang('en'); };
+  document.getElementById('lang-vi').onclick = function () { setLang('vi'); };
+  fetch('/version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
+    meta = v;
+    document.getElementById('sha').textContent = 'sha256: ' + v.sha256;
+    renderVer();
+  }).catch(function () {
+    document.getElementById('ver').textContent = t('unavailable');
+  });
+  applyLang();
+})();
+</script>
+<script>
+(function () {
+  try {
+    var sky = document.getElementById('sky');
+    if (!sky || !sky.getContext) return;
+    var ctx = sky.getContext('2d');
+    var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var stars = [], meteors = [], i, nextShower = 1500;
+    for (i = 0; i < 220; i++) stars.push({ x: Math.random(), y: Math.random() * 0.75, r: Math.random() * 1.2 + 0.3, p: Math.random() * 6.28 });
+    function resize() { sky.width = window.innerWidth; sky.height = window.innerHeight; }
+    resize();
+    window.addEventListener('resize', resize);
+    function draw(ts) {
+      var W = sky.width, H = sky.height;
+      var g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#020617'); g.addColorStop(0.6, '#0a1128'); g.addColorStop(1, '#131c3a');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      var k;
+      for (k = 0; k < stars.length; k++) {
+        var s = stars[k];
+        ctx.fillStyle = 'rgba(226,232,240,' + (0.25 + 0.65 * Math.abs(Math.sin(ts / 900 + s.p))).toFixed(3) + ')';
+        ctx.fillRect(s.x * W, s.y * H, s.r, s.r);
+      }
+      if (!reduced) {
+        if (ts > nextShower) {
+          var burst = 6 + Math.floor(Math.random() * 7), b;
+          for (b = 0; b < burst; b++) {
+            meteors.push({ x: W * (0.25 + Math.random() * 0.75), y: H * Math.random() * 0.35, vx: -(7 + Math.random() * 5), vy: 3.5 + Math.random() * 2.5, life: 1 });
+          }
+          nextShower = ts + 2500 + Math.random() * 3500;
+        }
+      }
+      for (var m = meteors.length - 1; m >= 0; m--) {
+        var mt = meteors[m];
+        mt.x += mt.vx; mt.y += mt.vy; mt.life -= 0.012;
+        if (mt.life <= 0 || mt.x < -160 || mt.y > H + 60) { meteors.splice(m, 1); continue; }
+        var tx = mt.x - mt.vx * 11, ty = mt.y - mt.vy * 11;
+        var tg = ctx.createLinearGradient(mt.x, mt.y, tx, ty);
+        var al = Math.min(1, mt.life) * 0.9;
+        tg.addColorStop(0, 'rgba(255,255,255,' + al.toFixed(3) + ')');
+        tg.addColorStop(0.3, 'rgba(167,139,250,' + (al * 0.6).toFixed(3) + ')');
+        tg.addColorStop(1, 'rgba(167,139,250,0)');
+        ctx.strokeStyle = tg; ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(mt.x, mt.y); ctx.lineTo(tx, ty); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,' + al.toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(mt.x, mt.y, 1.8, 0, 6.29); ctx.fill();
+      }
+    }
+    if (reduced) { draw(0); return; }
+    (function loop(ts) { draw(ts || 0); requestAnimationFrame(loop); })(0);
+  } catch (e) {}
+})();
+</script>
+<script>
+(function () {
+  var SECTOR = 2 * Math.PI / 8, HYS = 0.12;
+  var CLOCKWISE = ['right', 'down-right', 'down', 'down-left', 'left', 'up-left', 'up', 'up-right'];
+  var DIR_IDX = { 'up-left': 0, 'up': 1, 'up-right': 2, left: 3, center: 4, right: 5, 'down-left': 6, down: 7, 'down-right': 8 };
+  var REACTIONS = ['blink', 'heart', 'sparkle', 'surprised', 'wink', 'bashful', 'sleepy', 'dizzy', 'delighted'];
+  var wrap = function (a) { return Math.atan2(Math.sin(a), Math.cos(a)); };
+  var PAYOFF = ['heart', 'sparkle', 'delighted'];
+  var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function setCell(el, index) {
+    var col = index % 3, row = Math.floor(index / 3);
+    el.style.backgroundPosition = (col * 50) + '% ' + (row * 50) + '%';
+  }
+  /* One independent instance per button: own sector, click history and timers. */
+  function create(btn) {
+    var squashEl = btn.querySelector('.squash'),
+        lyrDir = btn.querySelector('.lyr-dir'),
+        lyrReact = btn.querySelector('.lyr-react');
+    if (!squashEl || !lyrDir || !lyrReact) return null;
+    var sector = 0, pi = 0, clicks = [], clearT = 0, dizzyT = 0;
+    function showReaction(name) {
+      var idx = REACTIONS.indexOf(name);
+      if (idx < 0) { lyrReact.style.opacity = 0; lyrDir.style.opacity = 1; return; }
+      setCell(lyrReact, idx);
+      lyrReact.style.opacity = 1; lyrDir.style.opacity = 0;
+    }
+    function hideReaction() { lyrReact.style.opacity = 0; lyrDir.style.opacity = 1; }
+    function setDir(name) { setCell(lyrDir, DIR_IDX[name]); }
+    function aim(px, py) {
+      var r = btn.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      var dx = px - cx, dy = py - cy;
+      if (Math.hypot(dx, dy) < 70) { setDir('center'); return; }
+      var angle = Math.atan2(dy, dx);
+      if (Math.abs(wrap(angle - sector * SECTOR)) < SECTOR / 2 + HYS) { setDir(CLOCKWISE[sector]); return; }
+      sector = ((Math.round(angle / SECTOR) + 8) % 8);
+      setDir(CLOCKWISE[sector]);
+    }
+    function squash() {
+      if (reduced || !squashEl.animate) return;
+      squashEl.animate(
+        [{ transform: 'scale(1,1)' }, { transform: 'scale(1.15,0.8)' }, { transform: 'scale(0.92,1.08)' }, { transform: 'scale(1,1)' }],
+        { duration: 420, easing: 'ease-out' });
+      squashEl.style.transformOrigin = '50% 78%';
+    }
+    btn.addEventListener('click', function () {
+      var now = Date.now();
+      clicks = clicks.filter(function (t) { return now - t < 1600; });
+      clicks.push(now);
+      squash();
+      clearTimeout(clearT); clearTimeout(dizzyT);
+      if (clicks.length >= 4) {
+        clicks = [];
+        showReaction('dizzy');
+        dizzyT = setTimeout(hideReaction, 1100);
+        return;
+      }
+      showReaction('blink');
+      setTimeout(function () {
+        var k = PAYOFF[pi % PAYOFF.length]; pi++;
+        showReaction(k);
+        clearT = setTimeout(hideReaction, 560);
+      }, 120);
+    });
+    setCell(lyrDir, DIR_IDX.center);
+    setCell(lyrReact, 0);
+    return { btn: btn, aim: aim };
+  }
+  var pack = Array.prototype.map.call(document.querySelectorAll('.mascot'), create).filter(Boolean);
+  try {
+    if (window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches) {
+      window.addEventListener('pointermove', function (e) {
+        for (var i = 0; i < pack.length; i++) pack[i].aim(e.clientX, e.clientY);
+      }, { passive: true });
+      window.addEventListener('scroll', function () {
+        for (var i = 0; i < pack.length; i++) {
+          var r = pack[i].btn.getBoundingClientRect();
+          pack[i].aim(r.left + r.width / 2, r.top + r.height / 2 - 200);
+        }
+      }, { passive: true });
+    }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# setup.ps1 is piped to Invoke-Expression; its bytes must stay LF on every checkout.
+setup.ps1 eol=lf

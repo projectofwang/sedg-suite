@@ -1,0 +1,218 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            cloudflare/package-lock.json
+
+      - name: Parse all PowerShell files (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = Get-ChildItem -Recurse -Include '*.ps1' -File |
+            Where-Object { $_.FullName -notmatch 'node_modules' }
+          foreach ($f in $files) {
+            $parseErrors = $null
+            [void][System.Management.Automation.PSParser]::Tokenize((Get-Content -LiteralPath $f.FullName -Raw), [ref]$parseErrors)
+            if (@($parseErrors).Count -gt 0) { throw "$($f.FullName): $($parseErrors.Count) syntax errors" }
+          }
+          Write-Host "Parsed $($files.Count) files, 0 errors"
+
+      - name: installer.ps1 and setup.ps1 must stay pure ASCII; setup.ps1 stays LF
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($f in @('installer.ps1', 'setup.ps1')) {
+            $n = ([regex]::Matches((Get-Content -LiteralPath $f -Raw), '[^\x00-\x7F]')).Count
+            if ($n -ne 0) { throw "$f has $n non-ASCII chars" }
+          }
+          if ((Get-Content -LiteralPath setup.ps1 -Raw) -match "`r") { throw 'setup.ps1 must stay LF' }
+
+      - name: PSScriptAnalyzer (errors only)
+        shell: powershell
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser -ErrorAction Stop
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+          if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
+            Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
+          }
+          $r = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error -ExcludeRule PSAvoidUsingWriteHost
+          $r | Format-Table -AutoSize | Out-String | Write-Host
+          if (@($r).Count -gt 0) { throw "PSScriptAnalyzer found $($r.Count) error(s)" }
+
+      - name: Pester logic tests (Pester 5+)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -ge [version]'5.2.0' })) {
+            Install-Module Pester -MinimumVersion 5.2.0 -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
+          }
+          Import-Module Pester -MinimumVersion 5.2.0 -Force -ErrorAction Stop
+          Invoke-Pester -Path ./tests -Output Detailed -CI
+
+      - name: Manifest schema + version parity + embedded parity
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath approved-releases.json -Raw | ConvertFrom-Json
+          if ($m.schema -ne 1 -or $m.policy -ne 'approved-only') { throw 'bad schema/policy' }
+          foreach ($c in @($m.components.dnsproxy, $m.components.zapret)) {
+            if ([string]::IsNullOrWhiteSpace($c.tag) -or [string]::IsNullOrWhiteSpace($c.asset) -or $c.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'bad component entry' }
+          }
+          if ($m.components.nssm.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'bad nssm entry' }
+          if ([string]$m.components.nssm.url -notmatch '^https://') { throw 'nssm url must be https' }
+          $line = (Select-String -LiteralPath installer.ps1 -Pattern "InstallerVersion = '" | Select-Object -First 1).Line
+          $iv = ($line -replace "^.*'([^']+)'.*", '$1').Trim()
+          if ($iv -ne [string]$m.installer.version) { throw "version mismatch: $iv vs $($m.installer.version)" }
+          $src = Get-Content -LiteralPath installer.ps1 -Raw
+          foreach ($tag in @($m.components.dnsproxy.tag, $m.components.zapret.tag)) {
+            if ($src -notmatch [regex]::Escape([string]$tag)) { throw "embedded manifest missing tag $tag" }
+          }
+          foreach ($h in @($m.components.dnsproxy.sha256, $m.components.zapret.sha256, $m.components.nssm.sha256)) {
+            if ($src -notmatch [regex]::Escape([string]$h)) { throw "embedded manifest missing hash $h" }
+          }
+          $mgr = $m.components.manager
+          if ($null -eq $mgr) { throw 'missing manager component' }
+          foreach ($field in @('repository', 'tag', 'asset', 'sha256')) {
+            if ([string]::IsNullOrWhiteSpace([string]$mgr.$field)) { throw "bad manager field: $field" }
+          }
+          if ([string]$mgr.repository -ne 'projectofwang/sedg-suite') { throw 'bad manager repository' }
+          if ([string]$mgr.tag -notmatch '^(v)?\d+(\.\d+)*$') { throw 'bad manager tag' }
+          $mgrVersion = ([string]$mgr.tag) -replace '^v', ''
+          if ([string]$mgr.asset -ne "sedg-manager-win-x64-$mgrVersion.zip") { throw 'bad manager asset' }
+          if ([string]$mgr.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'bad manager sha256' }
+          $mgrTag = ([regex]::Match($src, '(?m)^\$script:ManagerTag = ''([^'']+)''')).Groups[1].Value
+          $mgrSha = ([regex]::Match($src, '(?m)^\$script:ManagerSha256 = ''([^'']+)''')).Groups[1].Value
+          if ($mgrTag -ne [string]$mgr.tag) { throw "manager tag drift: $mgrTag vs $($mgr.tag)" }
+          if ($mgrSha -ne [string]$mgr.sha256) { throw "manager sha drift: $mgrSha vs $($mgr.sha256)" }
+
+      - name: EN/VI language parity
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $src = Get-Content -LiteralPath installer.ps1 -Raw
+          $en = ([regex]::Match($src, '(?s)EN = @\{(.*?)\n  \}')).Groups[1].Value
+          $vi = ([regex]::Match($src, '(?s)VI = @\{(.*?)\n  \}')).Groups[1].Value
+          $enKeys = [regex]::Matches($en, "([A-Za-z0-9]+)='") | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+          $viKeys = [regex]::Matches($vi, "([A-Za-z0-9]+)='") | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+          $d = Compare-Object $enKeys $viKeys
+          if ($d) { throw ("key drift: " + ($d -join ', ')) }
+          $appEn = @(Select-Xml -Path 'src/Sedg.Desktop/Resources/Strings.resx' -XPath '//data' | ForEach-Object { $_.Node.name } | Sort-Object -Unique)
+          $appVi = @(Select-Xml -Path 'src/Sedg.Desktop/Resources/Strings.vi.resx' -XPath '//data' | ForEach-Object { $_.Node.name } | Sort-Object -Unique)
+          $appDrift = Compare-Object $appEn $appVi
+          if ($appDrift) { throw ("app key drift: " + ($appDrift -join ', ')) }
+
+      - name: Cloudflare build (Git Bash) + outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash cloudflare/build.sh
+          test -f cloudflare/public/installer.ps1
+          test -f cloudflare/public/setup.ps1
+          test -f cloudflare/public/approved-releases.json
+          test -f cloudflare/public/version.json
+          test -f cloudflare/public/index.html
+          test -f cloudflare/public/_headers
+          test -f cloudflare/public/SHA256SUMS
+          grep -q ' setup.ps1$' cloudflare/public/SHA256SUMS
+          grep -q '^/setup.ps1$' cloudflare/public/_headers
+          node -e "v=require('./cloudflare/public/version.json'); if(!v.version||!v.commit||!v.sha256||!v.built) throw new Error('bad version.json')"
+
+  cf-path:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            cloudflare/package-lock.json
+
+      - name: Install dependencies (root + worker package)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm ci --no-audit --no-fund
+          Set-Location cloudflare
+          npm ci --no-audit --no-fund
+
+      - name: cf build + deploy dry-run (no sign-in required)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run deploy:cf:dry
+
+  dotnet:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build the .NET solution
+        shell: powershell
+        run: dotnet build src/sedg-manager.sln -c Release
+
+      - name: Run the .NET unit harness
+        shell: powershell
+        run: dotnet run --project tests/Sedg.UnitTests -c Release
+
+  rust:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # No third-party action: the toolchain in src/rust/rust-toolchain.toml is authoritative,
+      # and rustup installs it (with clippy and rustfmt) on first cargo invocation.
+      - name: Install rustup
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Invoke-WebRequest -Uri 'https://win.rustup.rs/x86_64' -OutFile "$env:TEMP\rustup-init.exe" -UseBasicParsing
+          & "$env:TEMP\rustup-init.exe" -y --profile minimal --default-toolchain none
+          if ($LASTEXITCODE -ne 0) { throw "rustup-init failed with $LASTEXITCODE" }
+          "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build, test, lint
+        working-directory: src/rust
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cargo build --release --locked
+          if ($LASTEXITCODE -ne 0) { throw "cargo build failed with $LASTEXITCODE" }
+          cargo test --locked
+          if ($LASTEXITCODE -ne 0) { throw "cargo test failed with $LASTEXITCODE" }
+          cargo clippy --all-targets --locked -- -D warnings
+          if ($LASTEXITCODE -ne 0) { throw "cargo clippy failed with $LASTEXITCODE" }

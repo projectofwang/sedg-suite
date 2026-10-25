@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SEDG Manager</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <div class="brand-text">
+          <span class="brand-name" id="app-title">SEDG Manager</span>
+          <span class="brand-mode" id="mode">Setup</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span class="pill" id="elevation">Not elevated</span>
+        <button class="ghost" id="theme" type="button">System</button>
+        <button class="ghost" id="language" type="button">VI</button>
+      </div>
+    </header>
+
+    <main class="shell" id="setup-view">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow" id="eyebrow">FIRST INSTALL</p>
+          <h1 id="title">The gateway is not installed on this PC.</h1>
+          <p class="lede" id="tagline">
+            One click installs the edge DNS gateway, its services, and the watchdog task.
+          </p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <span class="ring ring-3"></span>
+          <span class="ring ring-2"></span>
+          <span class="ring ring-1"></span>
+          <span class="core"></span>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <div class="card-head">
+            <h2 id="components-title">What will be installed</h2>
+            <span class="tag" id="components-tag">4 components</span>
+          </div>
+          <ul class="components" id="components"></ul>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2 id="checks-title">Readiness</h2>
+            <button class="ghost small" id="refresh" type="button">Re-check</button>
+          </div>
+          <ul class="checks" id="checks" aria-live="polite"></ul>
+        </section>
+      </div>
+
+      <section class="card action-card">
+        <div class="action-copy">
+          <h2 id="action-title">Install the gateway</h2>
+          <p class="muted" id="action-hint">
+            Windows asks for administrator approval after the download.
+          </p>
+        </div>
+        <button class="primary" id="install" type="button">Install gateway</button>
+      </section>
+
+      <section class="card progress hidden" id="progress" aria-live="polite" aria-busy="true">
+        <div class="progress-head">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="phase" id="phase">Starting…</span>
+          <span class="elapsed" id="elapsed">0:00</span>
+        </div>
+        <div class="log" id="log" role="log"></div>
+      </section>
+
+      <section class="card result hidden" id="result" aria-live="polite">
+        <div class="result-head">
+          <span class="result-icon" id="result-icon" aria-hidden="true"></span>
+          <div>
+            <h2 id="result-title"></h2>
+            <p class="result-message" id="result-message"></p>
+          </div>
+        </div>
+        <p class="muted" id="result-next"></p>
+        <div class="result-actions">
+          <button class="primary hidden" id="finish" type="button">Finish</button>
+          <button class="ghost hidden" id="retry" type="button">Try again</button>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span id="footer-note">Sources are pinned and verified. No telemetry.</span>
+      </footer>
+    </main>
+
+    <main class="shell hidden" id="dashboard">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow" id="readiness-eyebrow">Readiness</p>
+          <h1 id="readiness-title">Reading the gateway…</h1>
+          <p class="lede" id="readiness-detail"></p>
+        </div>
+        <div class="hero-actions">
+          <span class="pill" id="readiness-pill"></span>
+          <button class="ghost" id="refresh-status" type="button">Refresh</button>
+        </div>
+      </section>
+
+      <section class="card error-card hidden" id="status-error" role="status">
+        <h2 id="status-error-title">The dashboard could not be refreshed.</h2>
+        <p class="muted" id="status-error-detail"></p>
+      </section>
+
+      <div class="grid" id="dashboard-grid"></div>
+
+      <section class="card">
+        <div class="card-head">
+          <h2 id="actions-title">Actions</h2>
+          <span class="tag" id="actions-tag">Administrator approval is asked per action</span>
+        </div>
+        <div class="action-grid" id="action-grid"></div>
+      </section>
+
+      <section class="card" id="log-card">
+        <div class="card-head">
+          <h2 id="log-title">Recent operations</h2>
+          <button class="ghost small" id="log-open-folder" type="button">Open logs folder</button>
+        </div>
+        <p class="muted hidden" id="log-empty">No operations recorded yet.</p>
+        <p class="muted hidden" id="log-error" role="status"></p>
+        <ul class="operations" id="operations"></ul>
+        <p class="muted hidden" id="log-copied">Copied.</p>
+      </section>
+
+      <footer class="footer">
+        <span id="snapshot-at"></span>
+      </footer>
+    </main>
+
+    <main class="shell hidden" id="action-view">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow" id="action-eyebrow">Review</p>
+          <h1 id="action-heading"></h1>
+          <p class="lede" id="action-changes"></p>
+        </div>
+        <button class="ghost" id="action-back" type="button">Back</button>
+      </section>
+
+      <div id="review-stage">
+        <div class="grid">
+          <section class="card">
+            <div class="card-head">
+              <h2 id="review-scope-title">This operation will touch</h2>
+            </div>
+            <ul class="rows" id="review-scope"></ul>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <h2 id="review-preserved-title">What is preserved</h2>
+            </div>
+            <ul class="rows" id="review-preserved"></ul>
+          </section>
+        </div>
+
+        <section class="card" id="review-form-card">
+          <div class="card-head">
+            <h2 id="review-options-title">Options</h2>
+          </div>
+          <div class="form" id="review-form"></div>
+          <p class="muted" id="review-preconditions"></p>
+          <p class="muted" id="review-note"></p>
+        </section>
+
+        <section class="card error-card hidden" id="review-error" role="alert">
+          <p id="review-error-text"></p>
+        </section>
+
+        <div class="action-row">
+          <button class="ghost" id="review-back" type="button">Back</button>
+          <button class="primary" id="confirm" type="button">Confirm and run</button>
+        </div>
+      </div>
+
+      <section class="card progress hidden" id="action-progress" aria-live="polite" aria-busy="true">
+        <div class="progress-head">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="phase" id="action-phase">Starting…</span>
+          <span class="elapsed" id="action-elapsed">0:00</span>
+        </div>
+        <div class="log" id="action-log" role="log"></div>
+      </section>
+
+      <section class="card result hidden" id="action-result" aria-live="polite">
+        <div class="result-head">
+          <span class="result-icon" id="action-icon" aria-hidden="true"></span>
+          <div>
+            <h2 id="action-result-title"></h2>
+            <p class="result-message" id="action-result-message"></p>
+          </div>
+        </div>
+        <dl class="facts hidden" id="action-facts"></dl>
+        <p class="muted hidden" id="action-incomplete"></p>
+        <div class="log hidden" id="action-result-log" role="log"></div>
+        <div class="result-actions">
+          <button class="ghost hidden" id="action-open-log" type="button">Open log</button>
+          <button class="ghost" id="action-copy" type="button">Copy details</button>
+          <button class="primary" id="action-done" type="button">Done</button>
+        </div>
+        <p class="muted hidden" id="action-copied">Copied.</p>
+      </section>
+
+      <footer class="footer">
+        <span id="action-footer"></span>
+      </footer>
+    </main>
+
+    <textarea class="offscreen" id="copy-buffer" readonly aria-hidden="true"></textarea>
+
+    <script src="app.js"></script>
+  </body>
+</html>
