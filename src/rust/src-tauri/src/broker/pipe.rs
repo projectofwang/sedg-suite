@@ -9,7 +9,7 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle, RawHandle};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::ptr;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -26,7 +26,7 @@ use windows_sys::Win32::Security::{
     TOKEN_ELEVATION, TOKEN_QUERY, TOKEN_USER,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    CreateFileW, FILE_FLAG_FIRST_PIPE_INSTANCE, OPEN_EXISTING, PIPE_ACCESS_DUPLEX,
+    CreateDirectoryW, CreateFileW, FILE_FLAG_FIRST_PIPE_INSTANCE, OPEN_EXISTING, PIPE_ACCESS_DUPLEX,
 };
 use windows_sys::Win32::System::Pipes::{
     ConnectNamedPipe, CreateNamedPipeW, GetNamedPipeClientProcessId, SetNamedPipeHandleState,
@@ -149,6 +149,20 @@ pub fn current_user_sid() -> io::Result<String> {
         LocalFree(text as HLOCAL);
         Ok(sid)
     }
+}
+
+/// Creates a directory whose DACL only the current user, Administrators, and SYSTEM may write.
+/// `%TEMP%` can be redirected to a directory others can write (CI's `D:\a\_temp` is one), and the
+/// broker refuses a staged script that another principal could swap.
+pub(crate) fn create_private_directory(path: &Path) -> io::Result<()> {
+    let sid = current_user_sid()?;
+    let sddl = format!("D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;{sid})");
+    let (_descriptor, attributes) = security_attributes(&sddl)?;
+    let created = unsafe { CreateDirectoryW(wide(&path.to_string_lossy()).as_ptr(), &attributes) };
+    if created == 0 {
+        return Err(last_error());
+    }
+    Ok(())
 }
 
 /// True when the process token carries `TokenElevation`. Query failures are not elevated.

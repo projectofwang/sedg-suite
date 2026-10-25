@@ -72,6 +72,13 @@ fn a_declined_prompt_reports_uac_denied_and_disables_mutations() {
 
 #[test]
 fn a_non_elevated_broker_is_refused_before_any_request_is_sent() {
+    // A broker spawned from an elevated session is elevated too, and the refusal only exists for a
+    // non-elevated session. GitHub-hosted runners are elevated.
+    if elevate::is_elevated() {
+        eprintln!("skipped: this session is already elevated");
+        return;
+    }
+
     let child: Arc<Mutex<Option<Child>>> = Arc::new(Mutex::new(None));
     let spawned = Arc::clone(&child);
     let launcher: Launcher = Box::new(move |exe: &Path, args: &[String]| {

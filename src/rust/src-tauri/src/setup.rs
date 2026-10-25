@@ -183,7 +183,7 @@ impl Staged {
         }
 
         let directory = std::env::temp_dir().join(format!("sedg-setup-{}", uuid::Uuid::new_v4()));
-        std::fs::create_dir(&directory).map_err(|error| {
+        crate::broker::pipe::create_private_directory(&directory).map_err(|error| {
             SetupError::Io(format!(
                 "The staging directory {} could not be created: {error}",
                 directory.display()
