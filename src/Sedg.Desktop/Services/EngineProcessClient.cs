@@ -126,7 +126,9 @@ public sealed class EngineProcessClient : IEngineClient
         // Statement of intent: the cancellation token is not honored again after the spawn. App-side
         // cancel stops WAITING (the view model), never the engine child; the reader keeps draining
         // until the terminal result so the operation is recorded exactly once (design §5.3).
-        return await RunCoreAsync(process, action, request, progress);
+        // No continuation may resume on the caller's synchronization context: the caller is the UI
+        // thread, and it must stay free to paint while the engine runs (1.2.5 deadlock class).
+        return await RunCoreAsync(process, action, request, progress).ConfigureAwait(false);
     }
 
     private async Task<EngineRunResult> RunCoreAsync(
@@ -149,10 +151,10 @@ public sealed class EngineProcessClient : IEngineClient
             process.StandardInput.WriteLine(ProtocolJson.Serialize(request));
             process.StandardInput.Close();
 
-            await stdoutTask;
+            await stdoutTask.ConfigureAwait(false);
 
-            TryWaitForExit(process, state.Terminal is not null ? PostResultExitGraceMilliseconds : null, out var exitCode);
-            var stderr = ReadStderrTail(stderrTask);
+            var exitCode = await TryWaitForExitAsync(process, state.Terminal is not null ? PostResultExitGraceMilliseconds : null).ConfigureAwait(false);
+            var stderr = await ReadStderrTailAsync(stderrTask).ConfigureAwait(false);
 
             if (state.Terminal is null)
             {
@@ -271,12 +273,12 @@ public sealed class EngineProcessClient : IEngineClient
             }
 
             state.StreamEnded = true;
-        });
+        }).ConfigureAwait(false);
     }
 
     private async Task WatchSpawnAsync(Process process, RunState state)
     {
-        await Task.Delay(SpawnTimeoutMilliseconds);
+        await Task.Delay(SpawnTimeoutMilliseconds).ConfigureAwait(false);
         if (state.HelloSeen || state.Terminal is not null)
         {
             return;
@@ -312,26 +314,34 @@ public sealed class EngineProcessClient : IEngineClient
         };
     }
 
-    private void TryWaitForExit(Process process, int? postResultGraceMilliseconds, out int? exitCode)
+    private static async Task<int?> TryWaitForExitAsync(Process process, int? postResultGraceMilliseconds)
     {
-        exitCode = null;
+        int? exitCode = null;
         try
         {
             if (postResultGraceMilliseconds is null)
             {
-                process.WaitForExit();
+                await process.WaitForExitAsync().ConfigureAwait(false);
             }
-            else if (!process.WaitForExit(postResultGraceMilliseconds.Value))
+            else
             {
-                // The operation is already terminal; do not let a stuck engine block the session.
+                using var grace = new CancellationTokenSource(postResultGraceMilliseconds.Value);
                 try
                 {
-                    process.Kill(entireProcessTree: true);
-                    process.WaitForExit();
+                    await process.WaitForExitAsync(grace.Token).ConfigureAwait(false);
                 }
-                catch (Exception)
+                catch (OperationCanceledException)
                 {
-                    // Best effort only; the terminal result remains authoritative.
+                    // The operation is already terminal; do not let a stuck engine block the session.
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                        await process.WaitForExitAsync().ConfigureAwait(false);
+                    }
+                    catch (Exception)
+                    {
+                        // Best effort only; the terminal result remains authoritative.
+                    }
                 }
             }
 
@@ -344,13 +354,15 @@ public sealed class EngineProcessClient : IEngineClient
         {
             // A vanished or unqueryable process: the exit code stays unknown.
         }
+
+        return exitCode;
     }
 
-    private async Task<string> ReadStderrAsync(Process process)
+    private static async Task<string> ReadStderrAsync(Process process)
     {
         try
         {
-            return await process.StandardError.ReadToEndAsync();
+            return await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
         }
         catch (Exception)
         {
@@ -358,12 +370,12 @@ public sealed class EngineProcessClient : IEngineClient
         }
     }
 
-    private static string ReadStderrTail(Task<string> stderrTask)
+    private static async Task<string> ReadStderrTailAsync(Task<string> stderrTask)
     {
         string stderr;
         try
         {
-            stderr = stderrTask.GetAwaiter().GetResult();
+            stderr = await stderrTask.ConfigureAwait(false);
         }
         catch (Exception)
         {
