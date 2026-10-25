@@ -307,7 +307,7 @@ Describe 'Get-ApprovedManifest offline' {
             $m.installer.version | Should -Be '1.1.0'
             (@($global:SedgRemoteWarnings | Where-Object { $_ -match 'older than baseline' }).Count -gt 0) | Should -Be $true
         } finally {
-            Remove-Item function:global:Invoke-WebRequest -ErrorAction SilentlyContinue
+            Remove-Item function:Invoke-WebRequest -ErrorAction SilentlyContinue
             Remove-Item function:global:Write-Warning -ErrorAction SilentlyContinue
             $script:StateFile = $savedStateFile
         }
@@ -352,7 +352,7 @@ Describe 'Get-ApprovedManifest offline' {
             $m = Get-ApprovedManifest
             $m.installer.version | Should -Be '1.1.0'
         } finally {
-            Remove-Item function:global:Invoke-WebRequest -ErrorAction SilentlyContinue
+            Remove-Item function:Invoke-WebRequest -ErrorAction SilentlyContinue
             $script:StateFile = $savedStateFile
         }
     }
@@ -1301,7 +1301,7 @@ bootstrap:
 
             { Get-ApprovedManifest } | Should -Throw '*cross-check mismatch*'
         } finally {
-            Remove-Item function:global:Invoke-WebRequest -ErrorAction SilentlyContinue
+            Remove-Item function:Invoke-WebRequest -ErrorAction SilentlyContinue
             $script:StateFile = $savedStateFile
         }
     }

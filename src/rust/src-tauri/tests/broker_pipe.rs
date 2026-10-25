@@ -430,7 +430,9 @@ fn a_user_writable_engine_script_is_refused() {
 
     let error = sedg_manager::broker::validate_engine_path(&path).unwrap_err();
     assert!(
-        error.contains("not owned by SYSTEM") || error.contains("reparse point"),
+        error.contains("not owned by SYSTEM")
+            || error.contains("reparse point")
+            || error.contains("grants write access to untrusted principal"),
         "{error}"
     );
 
