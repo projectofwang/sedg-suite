@@ -6,6 +6,8 @@
 #   <GitHub-like layout>/...       component fixture zips under REPO/releases/download/TAG/
 #   nssm-2.24.zip                  the REAL NSSM archive, re-served locally so CI
 #                                  never depends on nssm.cc availability
+#   .../sedg-manager-win-x64-*.zip the REAL manager archive, re-served locally
+#                                  (the installer only trusts its embedded pin)
 # All hashes are computed at build time, so SHA-256 pinning stays enforced.
 #Requires -Version 5.1
 [CmdletBinding()]
@@ -168,6 +170,21 @@ class StubWinws {
     $zapZip = Join-Path (New-AssetUrlDir 'bol-van/zapret' $zapTag) $zapAsset
     Compress-Archive -Path (Join-Path $work 'zapret-v72.13') -DestinationPath $zapZip -Force
 
+    # Real manager archive: the installer trusts only its embedded pin, so the
+    # fixture re-serves the published asset instead of inventing a stub. The
+    # pin is read from approved-releases.json, which the manifest-parity gate
+    # keeps identical to the embedded one.
+    $published = (Get-Content -LiteralPath (Join-Path $repoRoot 'approved-releases.json') -Raw) | ConvertFrom-Json
+    $mgr = $published.components.manager
+    $mgrVersion = ([string]$mgr.tag) -replace '^v', ''
+    if ([string]$mgr.asset -ne "sedg-manager-win-x64-$mgrVersion.zip") { throw 'Published manager asset does not match its tag.' }
+    $mgrZip = Join-Path (New-AssetUrlDir ([string]$mgr.repository) ([string]$mgr.tag)) ([string]$mgr.asset)
+    $mgrUrl = 'https://github.com/{0}/releases/download/{1}/{2}' -f $mgr.repository, $mgr.tag, $mgr.asset
+    & curl.exe --fail --location --proto '=https' --proto-redir '=https' --retry 2 --retry-delay 2 --connect-timeout 20 --max-time 300 --output $mgrZip $mgrUrl
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $mgrZip)) { throw "Could not download the published manager archive: $mgrUrl" }
+    $mgrHash = Get-FileSha256 $mgrZip
+    if ($mgrHash -ne ([string]$mgr.sha256).ToLowerInvariant()) { throw "Published manager SHA-256 mismatch: $mgrHash" }
+
     # Real NSSM archive: download from the first reachable origin, pin its
     # SHA-256 into the fixture manifest and serve it locally.
     $nssmZip = Join-Path $OutDir 'nssm-2.24.zip'
@@ -206,6 +223,12 @@ class StubWinws {
                 tag = $zapTag
                 asset = $zapAsset
                 sha256 = (Get-FileSha256 $zapZip)
+            }
+            manager = [ordered]@{
+                repository = [string]$mgr.repository
+                tag = [string]$mgr.tag
+                asset = [string]$mgr.asset
+                sha256 = $mgrHash
             }
             nssm = [ordered]@{
                 version = '2.24'
