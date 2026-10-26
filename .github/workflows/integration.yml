@@ -4,10 +4,11 @@ name: integration
 # installer runs Install -> Status -> Restart -> Uninstall -Purge against a
 # loopback fixture server, exercising real NSSM/SCM services, the real
 # scheduled task, and real DNS mutation + restore. Components are local
-# stubs built from source (tests/integration/Build-Fixtures.ps1); NSSM is
-# the real pinned release. SHA-256 verification stays enforced end to end;
-# isolation comes from the installer's own seams (SEDG_INSTALL_PATH,
-# SEDG_MANIFEST_URL, SEDG_ASSET_BASE_URL).
+# stubs built from source (tests/integration/Build-Fixtures.ps1) except the
+# manager, which is the real pinned release; NSSM is the real pinned release.
+# SHA-256 verification stays enforced end to end; isolation comes from the
+# installer's own seams (SEDG_INSTALL_PATH, SEDG_MANIFEST_URL,
+# SEDG_ASSET_BASE_URL).
 on:
   workflow_dispatch:
   schedule:

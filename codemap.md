@@ -56,7 +56,7 @@ Manager đang được thay bằng Rust/Tauri v2: một exe `sedg-manager.exe` b
 - 3-way config parity: `wrangler.toml` ↔ `wrangler.config.ts` ↔ `cloudflare.config.ts`.
 - Version parity: `$script:InstallerVersion` ↔ `approved-releases.json.installer.version`.
 - Cross-origin check: CF `version.json`/`SHA256SUMS` vs GitHub Releases assets; installer không serve binary từ CF host.
-- Integration smoke hiện chưa build manager fixture; scheduled smoke sẽ fail ở required-manager check cho đến khi `tests/integration/Build-Fixtures.ps1` được mở rộng (ngoài Task 7).
+- Integration smoke: `Build-Fixtures.ps1` dựng stub dnsproxy/winws từ source, phục vụ lại đúng manager zip đã pin, và để NSSM tải từ nssm.cc (installer không có seam cho NSSM); manifest fixture lấy pin manager/NSSM từ `approved-releases.json`.
 
 ## Design
 - Single-script dispatcher facade; staged 2-phase (download → verify → commit) + rollback; manifest pinning + embedded fallback; env-var seams; i18n key table; self-elevation.

@@ -4,38 +4,25 @@
 #   version.json                   distribution metadata served next to installer.ps1
 #   installer.ps1                  copy of the repo installer
 #   <GitHub-like layout>/...       component fixture zips under REPO/releases/download/TAG/
-#   nssm-2.24.zip                  the REAL NSSM archive, re-served locally so CI
-#                                  never depends on nssm.cc availability
 #   .../sedg-manager-win-x64-*.zip the REAL manager archive, re-served locally
 #                                  (the installer only trusts its embedded pin)
+# NSSM is not served here: the installer accepts no seam for it, so the smoke
+# downloads the real pinned archive from nssm.cc.
 # All hashes are computed at build time, so SHA-256 pinning stays enforced.
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][string]$OutDir,
-    [string]$AssetBaseUrl
+    [Parameter(Mandatory)][string]$OutDir
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $installerPath = Join-Path $repoRoot 'installer.ps1'
 
-if ([string]::IsNullOrWhiteSpace($AssetBaseUrl)) { $AssetBaseUrl = $env:SEDG_ASSET_BASE_URL }
-if ([string]::IsNullOrWhiteSpace($AssetBaseUrl)) { throw 'AssetBaseUrl is required (or set SEDG_ASSET_BASE_URL).' }
-$AssetBaseUrl = $AssetBaseUrl.TrimEnd('/')
-
 $dnsTag = 'v0.86.0'
 $zapTag = 'v72.13'
 $dnsAsset = 'dnsproxy-windows-amd64-v0.86.0.zip'
 $zapAsset = 'zapret-v72.13.zip'
-# Preferred origin first, then the Internet Archive copy (verified to be
-# byte-identical to the pinned nssm SHA-256 727d1e42...6743): CI must not
-# depend on nssm.cc uptime. Whichever archive is downloaded is hash-pinned
-# into the fixture manifest and re-served from the loopback fixture server.
-$nssmCandidates = @(
-    'https://nssm.cc/release/nssm-2.24.zip',
-    'https://web.archive.org/web/2id_/https://nssm.cc/release/nssm-2.24.zip'
-)
 
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
 $work = Join-Path ([IO.Path]::GetTempPath()) ('sedg-fixtures-' + [guid]::NewGuid().ToString('N'))
@@ -185,22 +172,6 @@ class StubWinws {
     $mgrHash = Get-FileSha256 $mgrZip
     if ($mgrHash -ne ([string]$mgr.sha256).ToLowerInvariant()) { throw "Published manager SHA-256 mismatch: $mgrHash" }
 
-    # Real NSSM archive: download from the first reachable origin, pin its
-    # SHA-256 into the fixture manifest and serve it locally.
-    $nssmZip = Join-Path $OutDir 'nssm-2.24.zip'
-    $nssmErrors = @()
-    $nssmHash = $null
-    foreach ($candidate in $nssmCandidates) {
-        Remove-Item -LiteralPath $nssmZip -Force -ErrorAction SilentlyContinue
-        & curl.exe --fail --location --proto '=https' --proto-redir '=https' --retry 1 --retry-delay 2 --connect-timeout 20 --max-time 300 --output $nssmZip $candidate
-        if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $nssmZip)) {
-            $nssmHash = Get-FileSha256 $nssmZip
-            break
-        }
-        $nssmErrors += $candidate
-    }
-    if (-not $nssmHash) { throw "Could not download NSSM from any origin: $($nssmErrors -join ', ')." }
-
     # Installer version must match the manifest exactly (the installer throws
     # otherwise), so it is extracted from installer.ps1 itself.
     $ivLine = (Select-String -LiteralPath $installerPath -Pattern "InstallerVersion = '" | Select-Object -First 1).Line
@@ -231,10 +202,10 @@ class StubWinws {
                 sha256 = $mgrHash
             }
             nssm = [ordered]@{
-                version = '2.24'
-                asset = 'nssm-2.24.zip'
-                url = ($AssetBaseUrl + '/nssm-2.24.zip')
-                sha256 = $nssmHash
+                version = [string]$published.components.nssm.version
+                asset = [string]$published.components.nssm.asset
+                url = [string]$published.components.nssm.url
+                sha256 = [string]$published.components.nssm.sha256
             }
         }
     }
