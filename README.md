@@ -86,9 +86,13 @@ the release payload.
 
 > **Manager release status:** the manager is pinned in
 > `approved-releases.json` as `sedg-manager-win-x64-2.0.0.zip`, published on the
-> bare `2.0.0` release tag because releases are immutable. The desktop manager
-> is implemented but not integration-accepted: elevated UAC, broker, DNS,
-> service, driver, and watchdog end-to-end evidence is still pending.
+> bare `2.0.0` release tag because releases are immutable. Installer/engine
+> real-machine acceptance passed on 2026-10-26 with installer `v2.0.1` (clean
+> install + reboot, same-version update drill, pause/resume, restart, upstream,
+> DNS, CDN, uninstall + reboot). The manager GUI, the UAC prompt, and the broker
+> path were not exercised end-to-end; GUI screenshots and the in-app language
+> toggle remain manual, and the planned `1.2.6` rollback drill could not be run
+> because that release was never published.
 
 ## Usage
 

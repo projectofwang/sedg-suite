@@ -87,9 +87,13 @@ hanh.
 
 > **Trang thai manager release:** manager duoc ghim trong
 > `approved-releases.json` la `sedg-manager-win-x64-2.0.0.zip`, phat hanh tren
-> tag release tran `2.0.0` vi release la immutable. Desktop manager da
-> implement nhung chua integration-accepted: UAC, broker, DNS, service, driver,
-> watchdog end-to-end van chua co evidence.
+> tag release tran `2.0.0` vi release la immutable. Kiem thu tren may that cho
+> installer/engine da pass ngay 2026-10-26 voi installer `v2.0.1` (cai sach +
+> reboot, update drill cung phien ban, pause/resume, restart, upstream, DNS, CDN,
+> uninstall + reboot). GUI manager, prompt UAC va duong broker chua duoc chay
+> end-to-end; screenshot GUI va toggle ngon ngu trong app van phai lam thu cong,
+> va rollback drill `1.2.6` theo ke hoach khong chay duoc vi release do chua
+> bao gio duoc publish.
 
 ## Su dung
 
