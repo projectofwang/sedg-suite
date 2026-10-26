@@ -191,7 +191,9 @@ impl Staged {
         })?;
 
         let script = directory.join("manager.ps1");
-        if let Err(error) = std::fs::write(&script, installer) {
+        let staged = std::fs::write(&script, installer)
+            .and_then(|()| crate::broker::pipe::claim_owned(&script));
+        if let Err(error) = staged {
             let _ = std::fs::remove_dir_all(&directory);
             return Err(SetupError::Io(format!(
                 "The installer could not be staged at {}: {error}",

@@ -19,11 +19,12 @@ use windows_sys::Win32::Foundation::{
     ERROR_PIPE_BUSY, ERROR_PIPE_CONNECTED, ERROR_PIPE_LISTENING, GENERIC_READ, GENERIC_WRITE,
     HANDLE, HLOCAL, INVALID_HANDLE_VALUE,
 };use windows_sys::Win32::Security::Authorization::{
-    ConvertSidToStringSidW, ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
+    ConvertSidToStringSidW, ConvertStringSecurityDescriptorToSecurityDescriptorW,
+    ConvertStringSidToSidW, SetNamedSecurityInfoW, SDDL_REVISION_1, SE_FILE_OBJECT,
 };
 use windows_sys::Win32::Security::{
-    GetTokenInformation, TokenElevation, TokenUser, PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES,
-    TOKEN_ELEVATION, TOKEN_QUERY, TOKEN_USER,
+    GetTokenInformation, TokenElevation, TokenUser, OWNER_SECURITY_INFORMATION,
+    PSECURITY_DESCRIPTOR, PSID, SECURITY_ATTRIBUTES, TOKEN_ELEVATION, TOKEN_QUERY, TOKEN_USER,
 };
 use windows_sys::Win32::Storage::FileSystem::{
     CreateDirectoryW, CreateFileW, FILE_FLAG_FIRST_PIPE_INSTANCE, OPEN_EXISTING, PIPE_ACCESS_DUPLEX,
@@ -161,6 +162,34 @@ pub(crate) fn create_private_directory(path: &Path) -> io::Result<()> {
     let created = unsafe { CreateDirectoryW(wide(&path.to_string_lossy()).as_ptr(), &attributes) };
     if created == 0 {
         return Err(last_error());
+    }
+    claim_owned(path)?;
+    Ok(())
+}
+
+/// Makes `path` owned by the current user. A token that a service launched defaults new objects to
+/// its own owner (Administrators on an elevated runner), while the broker requires the user.
+pub(crate) fn claim_owned(path: &Path) -> io::Result<()> {
+    let sid = wide(&current_user_sid()?);
+    let mut raw: PSID = ptr::null_mut();
+    if unsafe { ConvertStringSidToSidW(sid.as_ptr(), &mut raw) } == 0 {
+        return Err(last_error());
+    }
+    let _guard = Descriptor(raw as PSECURITY_DESCRIPTOR);
+    let name = wide(&path.to_string_lossy());
+    let status = unsafe {
+        SetNamedSecurityInfoW(
+            name.as_ptr() as *mut u16,
+            SE_FILE_OBJECT,
+            OWNER_SECURITY_INFORMATION,
+            raw,
+            ptr::null_mut(),
+            ptr::null_mut(),
+            ptr::null_mut(),
+        )
+    };
+    if status != 0 {
+        return Err(io::Error::from_raw_os_error(status as i32));
     }
     Ok(())
 }
