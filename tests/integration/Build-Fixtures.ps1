@@ -51,17 +51,28 @@ using System.Threading;
 // installer listener check and the watchdog health check. Fixture only.
 class StubDnsProxy {
     static void Main() {
-        var udp = new UdpClient(AddressFamily.InterNetwork);
-        udp.Client.Bind(new IPEndPoint(IPAddress.Loopback, 53));
-        var tcp = new TcpListener(IPAddress.Loopback, 53);
+        Udp(AddressFamily.InterNetwork, IPAddress.Loopback);
+        Udp(AddressFamily.InterNetworkV6, IPAddress.IPv6Loopback);
+        Tcp(IPAddress.Loopback);
+        Tcp(IPAddress.IPv6Loopback);
+        Thread.Sleep(Timeout.Infinite);
+    }
+    static void Udp(AddressFamily family, IPAddress address) {
+        var udp = new UdpClient(family);
+        udp.Client.Bind(new IPEndPoint(address, 53));
+        new Thread(() => {
+            var from = new IPEndPoint(family == AddressFamily.InterNetworkV6 ? IPAddress.IPv6Any : IPAddress.Any, 0);
+            while (true) {
+                byte[] q = udp.Receive(ref from);
+                byte[] r = Reply(q, q.Length);
+                if (r != null) udp.Send(r, r.Length, from);
+            }
+        }) { IsBackground = true }.Start();
+    }
+    static void Tcp(IPAddress address) {
+        var tcp = new TcpListener(address, 53);
         tcp.Start();
         new Thread(TcpLoop) { IsBackground = true }.Start(tcp);
-        var from = new IPEndPoint(IPAddress.Any, 0);
-        while (true) {
-            byte[] q = udp.Receive(ref from);
-            byte[] r = Reply(q, q.Length);
-            if (r != null) udp.Send(r, r.Length, from);
-        }
     }
     static void TcpLoop(object state) {
         var tcp = (TcpListener)state;
