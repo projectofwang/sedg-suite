@@ -39,11 +39,11 @@ fn temp_file(name: &str, bytes: &[u8]) -> PathBuf {
 fn the_approved_manifest_parses() {
     let manifest = Manifest::parse(&fixture_text()).expect("the committed manifest is valid");
 
-    assert_eq!(manifest.installer.version, "1.2.5");
+    assert_eq!(manifest.installer.version, "2.0.0");
     assert_eq!(manifest.manager.repository, "projectofwang/sedg-suite");
-    assert_eq!(manifest.manager.tag, "1.2.5");
-    assert_eq!(manifest.manager.version(), "1.2.5");
-    assert_eq!(manifest.manager.asset, "sedg-manager-win-x64-1.2.5.zip");
+    assert_eq!(manifest.manager.tag, "2.0.0");
+    assert_eq!(manifest.manager.version(), "2.0.0");
+    assert_eq!(manifest.manager.asset, "sedg-manager-win-x64-2.0.0.zip");
     assert_eq!(manifest.manager.sha256.len(), 64);
     assert_eq!(
         manifest.components.len(),

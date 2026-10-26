@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-26
+
+- Replace the .NET/WPF desktop manager with the Rust/Tauri manager: one
+  `sedg-manager.exe` with setup, manager, and broker modes, EN/VI UI, and UTF-8
+  JSONL protocol. No .NET runtime is required.
+- Stage the setup script in a private directory owned by the current user
+  (`D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;<sid>)`), so the broker's
+  owner/writer validation passes under a shared `%TEMP%` ACL.
+- Publish manager `sedg-manager-win-x64-2.0.0.zip` on the bare `2.0.0` release
+  tag and pin its SHA-256 in `approved-releases.json` plus the embedded
+  `$script:Manager*` values.
+- Bump InstallerVersion 1.2.5 -> 2.0.0.
+
 ## [1.2.5] - 2026-10-24
 
 - Publish the pinned SEDG Manager artifact on a bare `1.2.5` release tag:

@@ -17,16 +17,16 @@ installer script (`installer.ps1`) remains the bootstrap and the `-Action` CLI
 for automation and recovery. All component versions are pinned in
 [`approved-releases.json`](approved-releases.json), including the manager asset.
 
-The engine installs the manager under `%ProgramFiles%\SEDG Manager` and does not
-remove it when the gateway is uninstalled (O-9: the manager has an independent
-lifecycle). `Gateway-Manager.bat` in the engine folder remains the
+The engine installs `sedg-manager.exe` inside the install folder
+(`C:\serverless-edge-dns-gateway` by default); uninstalling the gateway removes
+it too. `Gateway-Manager.bat` in the engine folder remains the
 one-release-cycle rollback path to the console menu if the GUI cannot start.
 
 ## Features
 
-- **SEDG Desktop Manager** (.NET 10 WinForms): status, upstream, service
-  control, logs, update/uninstall; a separate elevated broker handles privileged
-  actions, and the GUI itself stays unprivileged.
+- **SEDG Desktop Manager** (Rust + Tauri): status, upstream, service
+  control, logs, update/uninstall; privileged actions go through the same
+  executable's broker mode, and the GUI itself stays unprivileged.
 - One-line install, update, pause, resume, restart, status, and uninstall actions.
 - Console rollback path (`Gateway-Manager.bat`, created in the install folder)
   that self-elevates to administrator.
@@ -48,8 +48,9 @@ Requirements checked by the installer (`installer.ps1`):
 - Desktop Manager GUI: Windows 11 x64 only. Windows 10 and ARM64 are **not**
   supported GUI targets. This is an observed compatibility statement, not a
   claim of Microsoft support.
-- The published manager is self-contained `win-x64` (the .NET 10 runtime is
-  bundled), so no separate .NET install is required.
+- The published manager is a single self-contained `win-x64` `sedg-manager.exe`;
+  no .NET install is required, and Windows 11 provides the WebView2 runtime it
+  uses.
 - Windows PowerShell 5.1 or newer for the engine.
 - Administrator privileges (the launcher and script elevate automatically; the
   GUI asks the broker for privileged actions).
@@ -74,19 +75,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\installer.ps1 -Action Inst
 
 The default installation directory is `C:\serverless-edge-dns-gateway`. The
 install registers two services (`winws-service`, `dnsproxy-service`) and one
-scheduled task (`SEDG-DNS-Watchdog`). It also installs the manager under
-`%ProgramFiles%\SEDG Manager` and adds a Start-menu entry. Open **SEDG Manager**
-after install; it is the primary management surface.
-`Gateway-Manager.bat` in the engine folder remains the one-release-cycle
-rollback path to the console menu.
+scheduled task (`SEDG-DNS-Watchdog`). It also installs `sedg-manager.exe` in
+the same folder. Run `sedg-manager.exe` after install; it is the primary
+management surface. `Gateway-Manager.bat` in the engine folder remains the
+one-release-cycle rollback path to the console menu.
 
-The published manager is self-contained `win-x64` (the .NET 10 runtime is
-bundled), per Gate 1 decision O-6. `tools/Publish-Manager.ps1
--FrameworkDependent` is a development option only.
+The published manager is one self-contained `win-x64` executable;
+`tools/Publish-Manager.ps1` builds and verifies the zip, and its only mode is
+the release payload.
 
 > **Manager release status:** the manager is pinned in
-> `approved-releases.json` as `sedg-manager-win-x64-1.2.5.zip`, published on the
-> bare `1.2.5` release tag because releases are immutable. The desktop manager
+> `approved-releases.json` as `sedg-manager-win-x64-2.0.0.zip`, published on the
+> bare `2.0.0` release tag because releases are immutable. The desktop manager
 > is implemented but not integration-accepted: elevated UAC, broker, DNS,
 > service, driver, and watchdog end-to-end evidence is still pending.
 
@@ -260,19 +260,19 @@ Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error -ExcludeRule PSAvoidUsing
 # Re-sync the embedded fallback manifest from approved-releases.json
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Update-Manifest.ps1 -SkipDownload
 
-# Build the .NET solution and run the zero-dependency unit harness
-dotnet build src/sedg-manager.sln -c Release
-dotnet run --project tests/Sedg.UnitTests -c Release
+# Build and test the Rust manager
+cargo build --release --locked --manifest-path src/rust/Cargo.toml
+cargo test --locked --manifest-path src/rust/Cargo.toml
 
-# Publish the manager (self-contained is the release mode; framework-dependent is for local dev)
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish-Manager.ps1 -SelfContained
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish-Manager.ps1 -FrameworkDependent
+# Package the pinned manager zip (writes only under -OutDir)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish-Manager.ps1
 ```
 
 CI runs the baseline PowerShell, ASCII, PSScriptAnalyzer, Pester, manifest/EN-VI
-parity, and Cloudflare gates, plus a `windows-latest` .NET job that builds the
-solution and runs the 103-case harness. The manifest gate also checks the
-`manager` repository/tag/asset/SHA and its embedded `$script:Manager*` pins.
+parity, and Cloudflare gates, a legacy .NET job for the retired solution, and a
+`windows-latest` Rust job that builds the manager, runs its tests, and lints with
+Clippy. The manifest gate also checks the `manager`
+repository/tag/asset/SHA and its embedded `$script:Manager*` pins.
 
 ### Integration smoke (CI)
 
@@ -313,13 +313,12 @@ Static hosting and deployment details are described in
 
 - Releases are created from `vX.Y.Z` tags; the tag must match the installer
   version declared in `installer.ps1`, otherwise the workflow fails.
-- The manager is published self-contained `win-x64` (O-6) as
+- The manager is published as one self-contained `win-x64`
   `sedg-manager-win-x64-X.Y.Z.zip`; `approved-releases.json` and the embedded
   `$script:Manager*` pins must use that exact tag/asset/SHA. A rebuild is not
-  byte-reproducible, so upload the pinned artifact, not a fresh build. The
-  plan's Task 8 criterion-6 wording conflicts with O-6; the discrepancy is
-  recorded in [`codemap.md`](codemap.md).
-- Gateway uninstall does not remove `%ProgramFiles%\SEDG Manager` (O-9).
+  byte-reproducible, so upload the pinned artifact, not a fresh build.
+- Gateway uninstall removes `sedg-manager.exe` with the rest of the install
+  folder (the retired `%ProgramFiles%\SEDG Manager` copy is cleaned up too).
 - The release workflow builds the assets, generates `version.json` and
   `SHA256SUMS`, and publishes the release.
 - Releases are immutable: assets must be attached at creation. The installer
@@ -339,10 +338,13 @@ Static hosting and deployment details are described in
 |-- .github/
 |   `-- workflows/          CI, release, and component-watch workflows
 |-- cloudflare/             Static assets-only channel (no Worker script), build script, deployment docs
-|-- src/                    .NET 10 manager solution
+|-- src/                    Retired .NET 10 solution, kept as rollback reference
 |   |-- Sedg.Desktop/       WinForms management surface
 |   |-- Sedg.Broker/        Elevated broker and pipe protocol host
 |   `-- Sedg.Protocol/      Shared request/response schema
+|-- src/rust/               Rust/Tauri manager (shipped)
+|   |-- src-tauri/          Manager, broker, and setup modes
+|   `-- ui/                 HTML/CSS/JS front end
 |-- tests/                  Pester and .NET test suites
 |   |-- Sedg.UnitTests/     Zero-dependency .NET unit harness
 |   |-- Installer.Logic.Tests.ps1

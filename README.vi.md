@@ -17,16 +17,17 @@ trang thai, DNS upstream, dich vu, log, cap nhat/go cai dat. Trinh cai dat
 Tat ca phien ban thanh phan duoc ghim trong
 [`approved-releases.json`](approved-releases.json), gom ca manager.
 
-Engine cai manager vao `%ProgramFiles%\SEDG Manager` va khong xoa manager khi
-go gateway (O-9: manager co lifecycle rieng). `Gateway-Manager.bat` trong thu
+Engine cai `sedg-manager.exe` trong thu muc cai dat
+(`C:\serverless-edge-dns-gateway` mac dinh); go gateway cung xoa manager.
+`Gateway-Manager.bat` trong thu
 muc engine van la rollback path mot chu ky phat hanh ve menu console neu GUI
 khong khoi dong duoc.
 
 ## Tinh nang
 
-- **SEDG Desktop Manager** (.NET 10 WinForms): trang thai, upstream, dich vu,
-  log, cap nhat/go cai dat; broker rieng xu ly thao tac can quyen, GUI khong
-  giu dac quyen.
+- **SEDG Desktop Manager** (Rust + Tauri): trang thai, upstream, dich vu,
+  log, cap nhat/go cai dat; thao tac can quyen di qua broker cua chinh exe,
+  GUI van khong giu dac quyen.
 - Cai dat, cap nhat, tam dung, tiep tuc, khoi dong lai, xem trang thai, va gho
   bo mot dong lenh.
 - Console rollback (`Gateway-Manager.bat`, duoc tao trong thu muc cai dat) tu
@@ -49,8 +50,8 @@ Cac yeu cau duoc trinh cai dat kiem tra (`installer.ps1`):
   bi engine tu choi.
 - Desktop Manager GUI: chi Windows 11 x64. Windows 10 va ARM64 **khong** phai
   GUI target. Day la observed compatibility, khong phai claim Microsoft support.
-- Manager da publish la self-contained `win-x64` (.NET 10 runtime duoc dong
-  goi), khong can cai .NET rieng.
+- Manager da publish la mot exe self-contained `win-x64` (`sedg-manager.exe`);
+  khong can cai .NET, Windows 11 co san WebView2 runtime ma no dung.
 - Windows PowerShell 5.1 tro len cho engine.
 - Quyen administrator (launcher va script tu nang quyen; GUI hoi broker cho
   thao tac can quyen).
@@ -75,18 +76,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\installer.ps1 -Action Inst
 
 Thu muc cai dat mac dinh la `C:\serverless-edge-dns-gateway`. Qua trinh cai dat
 dang ky hai dich vu (`winws-service`, `dnsproxy-service`) va mot scheduled task
-(`SEDG-DNS-Watchdog`). Manager duoc cai vao `%ProgramFiles%\SEDG Manager` va co
-Start-menu entry. Mo **SEDG Manager** sau khi cai; day la management surface
+(`SEDG-DNS-Watchdog`). `sedg-manager.exe` duoc cai trong cung thu muc. Chay
+`sedg-manager.exe` sau khi cai; day la management surface
 chinh. `Gateway-Manager.bat` trong thu muc engine van la rollback path mot chu
 ky phat hanh ve menu console.
 
-Manager da publish la self-contained `win-x64` (.NET 10 runtime duoc dong goi),
-theo quyet dinh Gate 1 O-6. `tools/Publish-Manager.ps1 -FrameworkDependent` chi
-la lua chon cho dev.
+Manager da publish la mot exe self-contained `win-x64`;
+`tools/Publish-Manager.ps1` build va verify zip, va chi co mode payload phat
+hanh.
 
 > **Trang thai manager release:** manager duoc ghim trong
-> `approved-releases.json` la `sedg-manager-win-x64-1.2.5.zip`, phat hanh tren
-> tag release tran `1.2.5` vi release la immutable. Desktop manager da
+> `approved-releases.json` la `sedg-manager-win-x64-2.0.0.zip`, phat hanh tren
+> tag release tran `2.0.0` vi release la immutable. Desktop manager da
 > implement nhung chua integration-accepted: UAC, broker, DNS, service, driver,
 > watchdog end-to-end van chua co evidence.
 
@@ -255,18 +256,18 @@ Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error -ExcludeRule PSAvoidUsing
 # Dong lai manifest ghep tu approved-releases.json
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Update-Manifest.ps1 -SkipDownload
 
-# Build .NET solution va chay unit harness
-dotnet build src/sedg-manager.sln -c Release
-dotnet run --project tests/Sedg.UnitTests -c Release
+# Build va test Rust manager
+cargo build --release --locked --manifest-path src/rust/Cargo.toml
+cargo test --locked --manifest-path src/rust/Cargo.toml
 
-# Publish manager (self-contained la release mode; framework-dependent cho dev)
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish-Manager.ps1 -SelfContained
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish-Manager.ps1 -FrameworkDependent
+# Dong goi zip manager da ghim (chi ghi duoi -OutDir)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish-Manager.ps1
 ```
 
 CI chay cac gate PowerShell, ASCII, PSScriptAnalyzer, Pester, manifest/EN-VI
-parity, Cloudflare, va them job .NET tren `windows-latest` build solution +
-chay harness 103 case. Gate manifest cung kiem tra `manager`
+parity, Cloudflare, mot job .NET cho solution cu da nghi huu, va job Rust tren
+`windows-latest` build manager, chay test, va lint bang Clippy. Gate manifest
+cung kiem tra `manager`
 repository/tag/asset/SHA va embedded `$script:Manager*`.
 
 `tools/Update-Manifest.ps1` nhan `-DnsproxyTag`, `-ZapretTag`, `-NssmVersion`,
@@ -294,13 +295,12 @@ Chi tiet trien khai va hosting static duoc mo ta trong
 
 - Phat hanh duoc tao tu tag `vX.Y.Z`; tag phai khop voi phien ban trinh cai dat
   khai bao trong `installer.ps1`, nguoc lai workflow that bai.
-- Manager duoc publish self-contained `win-x64` (O-6) thanh
+- Manager duoc publish thanh mot exe self-contained `win-x64`
   `sedg-manager-win-x64-X.Y.Z.zip`; `approved-releases.json` va embedded
   `$script:Manager*` phai dung tag/asset/SHA do. Rebuild khong byte-reproducible,
-  nen upload dung artifact da pin, khong phai build moi. Cau chu criterion 6 cua
-  plan Task 8 xung dot voi O-6; discrepancy duoc ghi trong
-  [`codemap.md`](codemap.md).
-- Go gateway khong xoa `%ProgramFiles%\SEDG Manager` (O-9).
+  nen upload dung artifact da pin, khong phai build moi.
+- Go gateway xoa `sedg-manager.exe` cung thu muc cai dat (ban cu trong
+  `%ProgramFiles%\SEDG Manager` cung duoc don).
 - Workflow phat hanh build tai asset, tao `version.json` va `SHA256SUMS`, roi
   cong bo release.
 - Workflow theo lich chay moi Thu Hai luc 02:00 UTC, kiem tra phien ban cac
@@ -315,11 +315,14 @@ Chi tiet trien khai va hosting static duoc mo ta trong
 .
 |-- .github/
 |   `-- workflows/          Workflow CI, phat hanh, va component-watch
-|-- cloudflare/             Nguon Worker, script build, tai lieu trien khai
-|-- src/                    .NET 10 manager solution
+|-- cloudflare/             Static assets-only channel (khong Worker script), script build, tai lieu trien khai
+|-- src/                    Solution .NET 10 da nghi huu, giu lam rollback reference
 |   |-- Sedg.Desktop/       WinForms management surface
 |   |-- Sedg.Broker/        Broker nang quyen va pipe protocol host
 |   `-- Sedg.Protocol/      Schema request/response dung chung
+|-- src/rust/               Rust/Tauri manager (ban phat hanh)
+|   |-- src-tauri/          Manager, broker, va setup mode
+|   `-- ui/                 Front end HTML/CSS/JS
 |-- tests/                  Pester va .NET test suites
 |   |-- Sedg.UnitTests/     .NET unit harness khong dependency
 |   |-- Installer.Logic.Tests.ps1

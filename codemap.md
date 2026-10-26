@@ -12,7 +12,7 @@ Manager đang được thay bằng Rust/Tauri v2: một exe `sedg-manager.exe` b
 - `Sedg.Protocol`: request/response schema dùng chung cho app và broker.
 - `installer.ps1 -Action <X>` (mặc định `Menu`): `Install-All/Update-All/Status/Restart/Uninstall -Purge/Show-Menu`; chạy trực tiếp hoặc `irm https://dl.../installer.ps1 | iex`.
 - `Gateway-Manager.bat` (trong engine folder): console menu cũ; one-release-cycle rollback path khi GUI không dùng được.
-- `approved-releases.json`: source of truth pin version + sha256 (installer v1.2.5, dnsproxy v0.86.0, zapret v72.13, nssm 2.24, manager v1.2.5).
+- `approved-releases.json`: source of truth pin version + sha256 (installer v2.0.0, dnsproxy v0.86.0, zapret v72.13, nssm 2.24, manager v2.0.0).
 - `tools/Update-Manifest.ps1`: dev-time bump manifest + sync embedded fallback (gồm manager).
 - `tools/Publish-Manager.ps1`: build Rust `sedg-manager.exe` → zip `sedg-manager-win-x64-<version>.zip` (exe + `manager-version.txt`), tự verify bằng `tools/Test-ManagerPayload.ps1`.
 - `tools/Test-ManagerPayload.ps1`: cổng payload manager (layout, version, SHA-256); dùng chung cho publish và release.

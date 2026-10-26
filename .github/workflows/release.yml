@@ -78,7 +78,7 @@ jobs:
           }
 
       # The manager zip is built and published under its own bare version tag
-      # (1.2.5, not v1.2.5) BEFORE this installer tag, because its SHA-256 must
+      # (2.0.0, not v2.0.0) BEFORE this installer tag, because its SHA-256 must
       # already live in the tagged commit and release tags are immutable. This
       # step therefore verifies the pre-published asset instead of building it.
       - name: Gate — the pinned manager zip is published and hash-matching
