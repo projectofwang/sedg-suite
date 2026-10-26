@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "policy": "approved-only",
-  "installer": {"version": "2.0.0"},
+  "installer": {"version": "2.0.1"},
   "components": {
     "dnsproxy": {"repository":"AdguardTeam/dnsproxy","tag":"v0.86.0","asset":"dnsproxy-windows-amd64-v0.86.0.zip","sha256":"dedc186ddd4b96bf92474f91d972f67da0824e0141d09e3102fd96db9f8a0dbc"},
     "zapret": {"repository":"bol-van/zapret","tag":"v72.13","asset":"zapret-v72.13.zip","sha256":"c493e33a0dc4eba23a8686efdaba55f59755ad6ade3564aebd9d13f4c65e2e0c"},

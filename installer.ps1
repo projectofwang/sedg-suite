@@ -106,7 +106,7 @@ function Test-Administrator {
 # set (optional, for tests and packaging - nothing requires them). The seams
 # are ignored when elevated unless -AllowSeam is passed.
 
-$script:InstallerVersion = '2.0.0'
+$script:InstallerVersion = '2.0.1'
 if ((-not [string]::IsNullOrWhiteSpace($env:SEDG_INSTALL_PATH)) -and ($AllowSeam -or (-not (Test-Administrator)))) {
     Write-Warning 'SEDG_INSTALL_PATH test seam is active; install layout leaves the default.'
     $script:InstallPath = $env:SEDG_INSTALL_PATH
@@ -818,8 +818,10 @@ function Get-ApprovedManifest {
     # TOFU same-origin cross-check: when the primary (dl.*) answered, fetch
     # the GitHub fallback out-of-band and compare the pinned subset. A
     # mismatch means one origin is serving a forged manifest.
+    # HTTP is only the loopback fixture seam; the production origin is HTTPS
+    # and still gets the check.
     # shortcut: TOFU, upgrade to signed manifest when key infra exists
-    if ($fromRemote -and ($remoteUri -eq [string]$script:Sources.Manifest) -and (-not [string]::IsNullOrWhiteSpace([string]$script:Sources.ManifestFallback))) {
+    if ($fromRemote -and ($remoteUri -match '^https://') -and ($remoteUri -eq [string]$script:Sources.Manifest) -and (-not [string]::IsNullOrWhiteSpace([string]$script:Sources.ManifestFallback))) {
         try {
             $xb = (Invoke-WebRequest -Uri ([string]$script:Sources.ManifestFallback) -Headers @{ 'User-Agent' = 'Serverless-Edge-DNS-Gateway-Installer' } -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop).Content | ConvertFrom-Json
             $mc = Get-ManifestProperty $m 'components'

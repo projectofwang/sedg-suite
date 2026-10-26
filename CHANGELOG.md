@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-26
+
+- Skip the manifest TOFU cross-check when the primary origin is HTTP, which is
+  only the loopback fixture seam. Production uses HTTPS and still cross-checks
+  the GitHub fallback. Fixes the weekly integration smoke, whose stub manifest
+  cannot match the real component hashes.
+- Bump InstallerVersion 2.0.0 -> 2.0.1.
+
 ## [2.0.0] - 2026-10-26
 
 - Replace the .NET/WPF desktop manager with the Rust/Tauri manager: one

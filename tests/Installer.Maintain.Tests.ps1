@@ -356,6 +356,35 @@ Describe 'Get-ApprovedManifest offline' {
             $script:StateFile = $savedStateFile
         }
     }
+    It 'does not cross-check a loopback HTTP fixture manifest' {
+        function global:Invoke-WebRequest { param($Uri, $Headers, [switch]$UseBasicParsing, $TimeoutSec, $ErrorAction)
+            $global:SedgFetchedUris += [string]$Uri
+            return [pscustomobject]@{ Content = $global:SedgRemoteManifestJson }
+        }
+        $savedStateFile = $script:StateFile
+        try {
+            $global:SedgFetchedUris = @()
+            $script:ManifestCache = $null
+            $script:InstallerVersion = '1.1.0'
+            $script:NssmVersion = '2.24'
+            $script:NssmSha256 = ('a' * 64)
+            $script:Sources = [pscustomobject]@{ Manifest = 'http://127.0.0.1:18081/approved-releases.json'; ManifestFallback = 'https://raw.githubusercontent.com/x/y/main/approved-releases.json'; NssmZip = 'https://nssm.cc/release/nssm-2.24.zip' }
+            $global:SedgRemoteManifestJson = (@{
+                schema = 1; policy = 'approved-only'
+                installer = @{ version = '1.1.0' }
+                components = @{}
+            } | ConvertTo-Json -Depth 5)
+            $script:StateFile = Join-Path $TestDrive 'r1-http-fixture-state.json'
+            '{"InstallerVersion":"1.1.0"}' | Set-Content -LiteralPath $script:StateFile -Encoding UTF8
+
+            $m = Get-ApprovedManifest
+            $m.installer.version | Should -Be '1.1.0'
+            @($global:SedgFetchedUris | Where-Object { $_ -match 'raw\.githubusercontent' }).Count | Should -Be 0
+        } finally {
+            Remove-Item function:Invoke-WebRequest -ErrorAction SilentlyContinue
+            $script:StateFile = $savedStateFile
+        }
+    }
 }
 
 Describe 'Test-ConfigValid' {
