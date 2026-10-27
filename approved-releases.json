@@ -1,10 +1,10 @@
 {
   "schema": 1,
   "policy": "approved-only",
-  "installer": {"version": "2.0.1"},
+  "installer": {"version": "2.0.2"},
   "components": {
-    "dnsproxy": {"repository":"AdguardTeam/dnsproxy","tag":"v0.85.0","asset":"dnsproxy-windows-amd64-v0.85.0.zip","sha256":"dedc186ddd4b96bf92474f91d972f67da0824e0141d09e3102fd96db9f8a0dbc"},
-    "zapret": {"repository":"bol-van/zapret","tag":"v72.12","asset":"zapret-v72.12.zip","sha256":"c493e33a0dc4eba23a8686efdaba55f59755ad6ade3564aebd9d13f4c65e2e0c"},
+    "dnsproxy": {"repository":"AdguardTeam/dnsproxy","tag":"v0.86.0","asset":"dnsproxy-windows-amd64-v0.86.0.zip","sha256":"dedc186ddd4b96bf92474f91d972f67da0824e0141d09e3102fd96db9f8a0dbc"},
+    "zapret": {"repository":"bol-van/zapret","tag":"v72.13","asset":"zapret-v72.13.zip","sha256":"c493e33a0dc4eba23a8686efdaba55f59755ad6ade3564aebd9d13f4c65e2e0c"},
     "manager": {"repository":"projectofwang/sedg-suite","tag":"2.0.0","asset":"sedg-manager-win-x64-2.0.0.zip","sha256":"0dfef898b47e2f26f8b65ade4e5ffeac270a10b65bbc41f793ae3f95d9f5ee8d"},
     "nssm": {"version":"2.24","asset":"nssm-2.24.zip","url":"https://nssm.cc/release/nssm-2.24.zip","sha256":"727d1e42275c605e0f04aba98095c38a8e1e46def453cdffce42869428aa6743"}
   }
