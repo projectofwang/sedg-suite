@@ -226,6 +226,54 @@ Describe 'installer.ps1 protocol surface (Task 1)' {
         }
     }
 
+    It 'reports the embedded approved versions and a real match' {
+        $fakePath = Join-Path $env:TEMP ('sedg-protocol-versions-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $fakePath -Force | Out-Null
+        try {
+            ([ordered]@{ DnsProxyRelease = 'v0.86.0'; ZapretRelease = 'v72.13' } | ConvertTo-Json) |
+                Set-Content -LiteralPath (Join-Path $fakePath 'state.json') -Encoding UTF8
+            Set-Content -LiteralPath (Join-Path $fakePath 'manager-version.txt') -Value '1.9.9' -NoNewline
+            $run = Invoke-EngineProtocol -RequestJson (New-ProtocolRequest -Action 'Status') -AllowSeam -InstallPath $fakePath
+            $parsed = Convert-ProtocolOutput -StdOut $run.StdOut
+            $snapshot = $parsed.Results[0].data
+            $snapshot.versions.state | Should -Be 'known'
+            $entries = @{}
+            foreach ($entry in @($snapshot.versions.value)) { $entries[[string]$entry.component] = $entry }
+            @($entries.Keys).Count | Should -Be 5
+            foreach ($name in @('installer', 'dnsproxy', 'zapret', 'nssm')) {
+                [string]::IsNullOrWhiteSpace([string]$entries[$name].approved) | Should -BeFalse
+                $entries[$name].match | Should -Be 'equal'
+            }
+            $entries['manager'].installed | Should -Be '1.9.9'
+            $entries['manager'].approved | Should -Be '2.0.0'
+            $entries['manager'].match | Should -Be 'mismatch'
+        } finally {
+            Remove-Item -LiteralPath $fakePath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'mirrors console steps onto the protocol stream' {
+        $tokens = $null
+        $parseErrors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($global:SEDGProtocolInstallerPath, [ref]$tokens, [ref]$parseErrors)
+        @($parseErrors).Count | Should -Be 0
+        $functions = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true))
+        $step = @($functions | Where-Object { $_.Name -eq 'Write-Step' })
+        $done = @($functions | Where-Object { $_.Name -eq 'Write-Done' })
+        $emitter = @($functions | Where-Object { $_.Name -eq 'Write-ProtocolEvent' })
+        $step.Count | Should -Be 1
+        $done.Count | Should -Be 1
+        $emitter.Count | Should -Be 1
+        $step[0].Extent.Text | Should -Match "Write-ProtocolEvent 'step'"
+        $done[0].Extent.Text | Should -Match "Write-ProtocolEvent 'done'"
+        # The wire event must carry every field the manager requires.
+        $emitter[0].Extent.Text | Should -Match "type\s*=\s*'event'"
+        $emitter[0].Extent.Text | Should -Match 'seq\s*=\s*\$script:ProtocolSeq'
+        $emitter[0].Extent.Text | Should -Match 'tsUtc\s*='
+        $emitter[0].Extent.Text | Should -Match 'phase\s*=\s*\$Phase'
+        $emitter[0].Extent.Text | Should -Match 'message\s*=\s*\$Message'
+    }
+
     It 'rejects unknown actions with Protocol and exit 1' {
         $run = Invoke-EngineProtocol -RequestJson (New-ProtocolRequest -Action 'notAnAction')
         $parsed = Convert-ProtocolOutput -StdOut $run.StdOut

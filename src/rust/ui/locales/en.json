@@ -23,6 +23,7 @@
   "setup.phase.download": "Downloading the installer",
   "setup.phase.stage": "Staging the installer",
   "setup.phase.elevation": "Waiting for administrator approval",
+  "setup.phase.step": "Working…",
   "setup.result.okTitle": "The gateway is installed",
   "setup.result.okMessage": "The installer finished successfully.",
   "setup.result.okHint": "The installed manager replaces this window the next time you run the command.",

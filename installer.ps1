@@ -27,6 +27,7 @@ $ErrorActionPreference = 'Stop'
 $script:ProtocolOut = $null
 $script:ProtocolResultSent = $false
 $script:ProtocolMode = $false
+$script:ProtocolSeq = 0
 $script:CdnStructured = $false
 if ($Protocol -eq 'jsonl') {
     # The protocol wire format is UTF-8. A host console on an OEM code page
@@ -410,6 +411,7 @@ $script:InfoVI = @{
     'Installing DNSProxy configuration...' = '\u0110ang c\u00E0i \u0111\u1EB7t c\u1EA5u h\u00ECnh DNSProxy...';
     'Checking Zapret blacklist...' = '\u0110ang ki\u1EC3m tra blacklist c\u1EE7a Zapret...';
     'Removing existing Windows services...' = '\u0110ang g\u1EE1 c\u00E1c d\u1ECBch v\u1EE5 Windows hi\u1EC7n c\u00F3...';
+    'Removing installation files...' = '\u0110ang x\u00F3a c\u00E1c t\u1EC7p c\u00E0i \u0111\u1EB7t...';
     'Creating and configuring Windows services...' = '\u0110ang t\u1EA1o v\u00E0 c\u1EA5u h\u00ECnh c\u00E1c d\u1ECBch v\u1EE5 Windows...';
     'Installing local manager scripts...' = '\u0110ang c\u00E0i \u0111\u1EB7t script qu\u1EA3n l\u00FD n\u1ED9i b\u1ED9...';
     'Verifying DNSProxy IPv4 listeners...' = '\u0110ang ki\u1EC3m tra c\u1ED5ng l\u1EAFng nghe IPv4 c\u1EE7a DNSProxy...';
@@ -490,11 +492,15 @@ if ($Language.ToUpperInvariant() -in @('EN','VI')) {
 }
 
 function Write-Step([string]$Text) {
-    Write-Host (("  " + ([string][char]0x25BA) + " " + (Get-ViInfo $Text))) -ForegroundColor Cyan
+    $shown = Get-ViInfo $Text
+    Write-Host (("  " + ([string][char]0x25BA) + " " + $shown)) -ForegroundColor Cyan
+    Write-ProtocolEvent 'step' $shown
 }
 
 function Write-Done([string]$Text) {
-    Write-Host (("  " + ([string][char]0x2714) + " " + (Get-ViInfo $Text))) -ForegroundColor Green
+    $shown = Get-ViInfo $Text
+    Write-Host (("  " + ([string][char]0x2714) + " " + $shown)) -ForegroundColor Green
+    Write-ProtocolEvent 'done' $shown
 }
 
 function Write-CreditBanner {
@@ -763,10 +769,9 @@ function Get-ReleaseAssetUrl([string]$Repository, [string]$Tag, [string]$Asset, 
     return "{0}/{1}/releases/download/{2}/{3}" -f (Get-AssetDownloadBase -AllowSeam:$AllowSeam), $Repository, $Tag, $Asset
 }
 
-function Get-ApprovedManifest {
-    param([switch]$AllowDowngrade)
-    try { if (-not $AllowDowngrade -and $script:AllowDowngrade) { $AllowDowngrade = $true } } catch { }
-    if ($script:ManifestCache) { return $script:ManifestCache }
+function Get-EmbeddedManifest {
+    # The offline pin set. Callers that must not touch the network (status)
+    # read this directly; Get-ApprovedManifest still validates the merged copy.
     $embedded = [pscustomobject]@{
         schema = 1
         policy = 'approved-only'
@@ -798,6 +803,14 @@ function Get-ApprovedManifest {
             }
         }
     }
+    return $embedded
+}
+
+function Get-ApprovedManifest {
+    param([switch]$AllowDowngrade)
+    try { if (-not $AllowDowngrade -and $script:AllowDowngrade) { $AllowDowngrade = $true } } catch { }
+    if ($script:ManifestCache) { return $script:ManifestCache }
+    $embedded = Get-EmbeddedManifest
 
     $m = $null
     $fromRemote = $false
@@ -2499,7 +2512,9 @@ function Set-UpstreamInConfig([string]$Upstream) {
     if ($newline -eq "`r`n") { $updated = $updated -replace "`n", "`r`n" }
     Set-Content -LiteralPath $script:ConfigFile -Value $updated -Encoding UTF8 -NoNewline
     $__upShown = '[redacted]'
-    try { $__uu = [uri]$Upstream; $__upShown = ($__uu.Scheme + '://' + $__uu.Host + $__uu.AbsolutePath) } catch { }
+    # Host only: a DoH path can carry a resolver profile token, and the GUI
+    # keeps this line on screen after the action finishes.
+    try { $__uu = [uri]$Upstream; $__upShown = ($__uu.Scheme + '://' + $__uu.Host) } catch { }
     Write-Done (((T 'DoneUpstreamChanged') -f $__upShown))
 }
 function Set-SystemDns {
@@ -3831,6 +3846,7 @@ function Uninstall-All {
         try { Remove-OwnWinDivertDriver -ScheduleIfLocked } catch { $cleanupErrors += ('Failed to remove WinDivert: ' + $_.Exception.Message) }
     }
 
+    Write-Step 'Removing installation files...'
     if ($installed) {
         # O-9 used to keep the manager in %ProgramFiles% with an independent
         # lifecycle. It now lives inside this tree (sedg-manager.exe), so
@@ -4302,6 +4318,23 @@ function Write-ProtocolLine($Object) {
     $script:ProtocolOut.Flush()
 }
 
+function Write-ProtocolEvent([string]$Phase, [string]$Message) {
+    # Console steps are the engine's only progress signal; mirror them onto the
+    # protocol stream so the GUI shows each stage. Never throws: a closed pipe
+    # must not abort the operation.
+    if (-not $script:ProtocolMode) { return }
+    try {
+        $script:ProtocolSeq++
+        Write-ProtocolLine ([ordered]@{
+            type    = 'event'
+            seq     = $script:ProtocolSeq
+            tsUtc   = (Get-Date).ToUniversalTime().ToString('o')
+            phase   = $Phase
+            message = $Message
+        })
+    } catch { }
+}
+
 function New-ProtocolProbe([string]$State, $Value = $null, [string]$Reason = '') {
     if ($State -eq 'known') {
         return [ordered]@{ state = 'known'; value = $Value }
@@ -4472,16 +4505,47 @@ function Get-StatusSnapshot {
             if ($state.PSObject.Properties['DnsProxyRelease']) { $dnsRelease = [string]$state.DnsProxyRelease }
             if ($state.PSObject.Properties['ZapretRelease']) { $zapretRelease = [string]$state.ZapretRelease }
         }
-        if ([string]::IsNullOrWhiteSpace($dnsRelease) -or [string]::IsNullOrWhiteSpace($zapretRelease)) {
+        $dnsKnown = (-not [string]::IsNullOrWhiteSpace($dnsRelease)) -and ($dnsRelease -ne 'Unknown')
+        $zapKnown = (-not [string]::IsNullOrWhiteSpace($zapretRelease)) -and ($zapretRelease -ne 'Unknown')
+        if (-not ($dnsKnown -and $zapKnown)) {
             $snapshot['versions'] = New-ProtocolProbe 'unknown' $null 'The installed state does not record both component versions.'
         } else {
-            $snapshot['versions'] = New-ProtocolProbe 'known' @(
-                [ordered]@{ component = 'installer'; installed = $script:InstallerVersion; approved = $null; match = 'unknown' },
-                [ordered]@{ component = 'dnsproxy'; installed = $dnsRelease; approved = $null; match = 'unknown' },
-                [ordered]@{ component = 'zapret'; installed = $zapretRelease; approved = $null; match = 'unknown' },
-                [ordered]@{ component = 'nssm'; installed = $script:NssmVersion; approved = $null; match = 'unknown' },
-                [ordered]@{ component = 'manager'; installed = $null; approved = $null; match = 'unknown' }
+            $approved = Get-EmbeddedManifest
+            $managerInstalled = $null
+            try {
+                $managerVersionFile = Join-Path (Split-Path -Parent $script:ManagerPath) 'manager-version.txt'
+                if (Test-Path -LiteralPath $managerVersionFile -PathType Leaf) {
+                    $managerInstalled = ([string](Get-Content -LiteralPath $managerVersionFile -Raw -ErrorAction Stop)).Trim()
+                }
+            } catch { }
+            $rows = @(
+                @{ component = 'installer'; installed = [string]$script:InstallerVersion; approved = [string]$approved.installer.version },
+                @{ component = 'dnsproxy'; installed = [string]$dnsRelease; approved = [string]$approved.components.dnsproxy.tag },
+                @{ component = 'zapret'; installed = [string]$zapretRelease; approved = [string]$approved.components.zapret.tag },
+                @{ component = 'nssm'; installed = [string]$script:NssmVersion; approved = [string]$approved.components.nssm.version },
+                @{ component = 'manager'; installed = [string]$managerInstalled; approved = [string]$approved.components.manager.tag }
             )
+            $matrix = @()
+            foreach ($row in $rows) {
+                $installedValue = $null
+                $approvedValue = $null
+                if (-not [string]::IsNullOrWhiteSpace([string]$row.installed)) { $installedValue = ([string]$row.installed).Trim() }
+                if (-not [string]::IsNullOrWhiteSpace([string]$row.approved)) { $approvedValue = ([string]$row.approved).Trim() }
+                $match = 'unknown'
+                if ($installedValue -and $approvedValue) {
+                    $left = $installedValue -replace '^[vV]', ''
+                    $right = $approvedValue -replace '^[vV]', ''
+                    $match = 'mismatch'
+                    if ($left -eq $right) { $match = 'equal' }
+                }
+                $matrix += [ordered]@{
+                    component = [string]$row.component
+                    installed = $installedValue
+                    approved  = $approvedValue
+                    match     = $match
+                }
+            }
+            $snapshot['versions'] = New-ProtocolProbe 'known' $matrix
         }
     } catch {
         $snapshot['versions'] = New-ProtocolProbe 'unknown' $null ('Version probe failed: ' + $_.Exception.Message)

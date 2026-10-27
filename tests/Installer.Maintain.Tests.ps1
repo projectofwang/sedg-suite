@@ -39,6 +39,7 @@ function global:Get-ViInfo([string]$Text) { return $Text }
 
 Import-InstallerFunction 'Verify-Sha256'
 Import-InstallerFunction 'Get-ReleaseAssetUrl'
+Import-InstallerFunction 'Get-EmbeddedManifest'
 Import-InstallerFunction 'Get-ApprovedManifest'
 Import-InstallerFunction 'Get-ManifestProperty'
 Import-InstallerFunction 'Get-ManifestString'
@@ -1221,6 +1222,7 @@ Describe 'Regression pins (findings 18/19)' {
         Import-InstallerFunction 'Get-ConfiguredUpstream'
         Import-InstallerFunction 'Set-UpstreamInConfig'
         Import-InstallerFunction 'Ensure-Administrator'
+        Import-InstallerFunction 'Get-EmbeddedManifest'
         Import-InstallerFunction 'Get-ApprovedManifest'
     }
     It 'writes a $ upstream exactly once through a comment-first block (no $$ doubling)' {

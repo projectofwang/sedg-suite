@@ -20,6 +20,7 @@ function global:T([string]$Key) { return $Key }
 function global:Get-ViInfo([string]$Text) { return $Text }
 function global:Write-Step([string]$Text) { }
 function global:Write-Done([string]$Text) { }
+function global:Write-ProtocolEvent([string]$Phase, [string]$Message) { }
 $script:Lang = 'EN'
 $script:InfoVI = @{}
 $script:AllowedReleaseRepos = @('AdguardTeam/dnsproxy', 'bol-van/zapret')

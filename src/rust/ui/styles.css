@@ -460,6 +460,10 @@ button:disabled {
   animation: spin 900ms linear infinite;
 }
 
+.progress.settled .spinner {
+  display: none;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

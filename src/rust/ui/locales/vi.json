@@ -23,6 +23,7 @@
   "setup.phase.download": "Đang tải bộ cài",
   "setup.phase.stage": "Đang chuẩn bị bộ cài",
   "setup.phase.elevation": "Đang chờ quyền quản trị",
+  "setup.phase.step": "Đang thực hiện…",
   "setup.result.okTitle": "Đã cài xong cổng",
   "setup.result.okMessage": "Bộ cài đã hoàn tất.",
   "setup.result.okHint": "Lần chạy lệnh sau, trình quản lý đã cài sẽ thay cửa sổ này.",

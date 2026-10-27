@@ -4,7 +4,7 @@
 
 const LANGUAGES = ["en", "vi"];
 const COMPONENTS = ["dnsproxy", "zapret", "nssm", "watchdog"];
-const PHASES = new Set(["download", "stage", "elevation"]);
+const PHASES = new Set(["download", "stage", "elevation", "step"]);
 const READINESS_LEVELS = { ready: "ok", degraded: "warn", failed: "block" };
 const UNCHANGED_STATES = new Set(["notRequired", "unchanged", "unknown"]);
 
@@ -268,21 +268,34 @@ function paintPhase(payload, id, emptyKey) {
 }
 
 function onSetupEvent(payload) {
-  paintPhase(payload, "phase", "setup.phase.starting");
+  const phase = typeof payload?.phase === "string" ? payload.phase : "";
+  // A step keeps the header generic; its message is the useful part and it is
+  // already in the log. `done` only logs so the header never flickers back.
+  if (phase === "step") {
+    setText("phase", t("setup.phase.step"));
+  } else if (phase !== "done") {
+    paintPhase(payload, "phase", "setup.phase.starting");
+  }
   const message = typeof payload?.message === "string" ? payload.message : "";
   if (message) {
     log(message);
   }
 }
 
+function setProgressBusy(id, busy) {
+  const card = node(id);
+  if (!card) {
+    return;
+  }
+  card.classList.toggle("settled", !busy);
+  card.setAttribute("aria-busy", busy ? "true" : "false");
+}
+
 function onSetupResult(payload) {
   const ok = payload?.ok === true;
   stopTimer();
   state.busy = false;
-
-  if (ok) {
-    show("progress", false);
-  }
+  setProgressBusy("progress", false);
 
   const icon = node("result-icon");
   if (icon) {
@@ -323,6 +336,7 @@ async function install() {
   clear("log");
   show("result", false);
   show("progress", true);
+  setProgressBusy("progress", true);
   setText("phase", t("setup.phase.starting"));
   startTimer("elapsed");
 
@@ -683,7 +697,8 @@ function renderAction() {
   show("action-back", stage === "review");
 
   show("review-stage", stage === "review");
-  show("action-progress", stage === "progress");
+  // The log stays under the result so the steps that produced it remain readable.
+  show("action-progress", stage === "progress" || stage === "result");
   show("action-result", stage === "result");
 
   if (stage === "review") {
@@ -903,6 +918,7 @@ async function confirmAction() {
   state.action.stage = "progress";
   clear("action-log");
   setText("action-phase", t("action.progressNone"));
+  setProgressBusy("action-progress", true);
   startTimer("action-elapsed");
   renderAction();
 
@@ -922,7 +938,12 @@ function onActionEvent(payload) {
   if (state.action.stage !== "progress") {
     return;
   }
-  paintPhase(payload, "action-phase", "action.progressNone");
+  const phase = typeof payload?.phase === "string" ? payload.phase : "";
+  if (phase === "step") {
+    setText("action-phase", t("setup.phase.step"));
+  } else if (phase !== "done") {
+    paintPhase(payload, "action-phase", "action.progressNone");
+  }
   const message = typeof payload?.message === "string" ? payload.message : "";
   if (message) {
     log(message, "action-log");
@@ -935,6 +956,7 @@ function onActionResult(payload) {
   }
   stopTimer();
   state.busy = false;
+  setProgressBusy("action-progress", false);
   state.action.result = isObject(payload) ? payload : { ok: false, message: String(payload ?? "") };
   state.action.stage = "result";
   renderAction();
