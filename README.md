@@ -89,10 +89,15 @@ the release payload.
 > bare `2.0.0` release tag because releases are immutable. Installer/engine
 > real-machine acceptance passed on 2026-10-26 with installer `v2.0.1` (clean
 > install + reboot, same-version update drill, pause/resume, restart, upstream,
-> DNS, CDN, uninstall + reboot). The manager GUI, the UAC prompt, and the broker
-> path were not exercised end-to-end; GUI screenshots and the in-app language
-> toggle remain manual, and the planned `1.2.6` rollback drill could not be run
-> because that release was never published.
+> DNS, CDN, uninstall + reboot). The manager GUI and broker path were exercised
+> on 2026-10-27: setup installed (repair over an interrupted first attempt)
+> from the published zip, the dashboard toggled EN/VI, and Pause/Resume/Restart
+> ran through the elevated broker (UAC prompt observed for Restart; all three
+> recorded `ok` in the operation log). The GUI Uninstall/Update/
+> upstream/DNS/CDN buttons were not exercised; the unelevated dashboard reports
+> the SYSTEM watchdog task as missing by ACL, and version rows show `match
+> unknown`. The planned `1.2.6` rollback drill could not be run because that
+> release was never published.
 
 ## Usage
 
