@@ -85,11 +85,13 @@ The published manager is one self-contained `win-x64` executable;
 the release payload.
 
 > **Manager release status:** the manager is pinned in
-> `approved-releases.json` as `sedg-manager-win-x64-2.0.0.zip`, published on the
-> bare `2.0.0` release tag because releases are immutable. Installer/engine
+> `approved-releases.json` as `sedg-manager-win-x64-2.0.1.zip`, published on the
+> bare `2.0.1` release tag because releases are immutable. Installer/engine
 > real-machine acceptance passed on 2026-10-26 with installer `v2.0.1` (clean
 > install + reboot, same-version update drill, pause/resume, restart, upstream,
-> DNS, CDN, uninstall + reboot). The manager GUI and broker path were exercised
+> DNS, CDN, uninstall + reboot). Installer `v2.0.2` packages the per-step
+> progress stream and the real manager match, but has not had a full
+> real-machine rerun. The `2.0.0` manager GUI and broker path were exercised
 > on 2026-10-27: setup installed (repair over an interrupted first attempt)
 > from the published zip, the dashboard toggled EN/VI, and Pause/Resume/Restart
 > ran through the elevated broker (UAC prompt observed for Restart; all three
@@ -98,8 +100,9 @@ the release payload.
 > Uninstall removed the services, watchdog task, and DNS settings, but left the
 > install tree and did not schedule it for reboot; the folder needs an elevated
 > removal. GUI Update is still untested. The unelevated dashboard reports the
-> SYSTEM watchdog task as missing by ACL, and version rows show `match
-> unknown`. The planned `1.2.6` rollback drill could not be run because that
+> SYSTEM watchdog task as missing by ACL. Manager `2.0.1` adds per-step progress
+> and reports `equal`, `mismatch`, or `unknown` from the embedded pin without a
+> network call. The planned `1.2.6` rollback drill could not be run because that
 > release was never published.
 
 ## Usage

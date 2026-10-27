@@ -245,7 +245,7 @@ Describe 'installer.ps1 protocol surface (Task 1)' {
                 $entries[$name].match | Should -Be 'equal'
             }
             $entries['manager'].installed | Should -Be '1.9.9'
-            $entries['manager'].approved | Should -Be '2.0.0'
+            $entries['manager'].approved | Should -Be '2.0.1'
             $entries['manager'].match | Should -Be 'mismatch'
         } finally {
             Remove-Item -LiteralPath $fakePath -Recurse -Force -ErrorAction SilentlyContinue

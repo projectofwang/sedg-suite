@@ -86,21 +86,24 @@ Manager da publish la mot exe self-contained `win-x64`;
 hanh.
 
 > **Trang thai manager release:** manager duoc ghim trong
-> `approved-releases.json` la `sedg-manager-win-x64-2.0.0.zip`, phat hanh tren
-> tag release tran `2.0.0` vi release la immutable. Kiem thu tren may that cho
+> `approved-releases.json` la `sedg-manager-win-x64-2.0.1.zip`, phat hanh tren
+> tag release tran `2.0.1` vi release la immutable. Kiem thu tren may that cho
 > installer/engine da pass ngay 2026-10-26 voi installer `v2.0.1` (cai sach +
 > reboot, update drill cung phien ban, pause/resume, restart, upstream, DNS, CDN,
-> uninstall + reboot). GUI manager va duong broker da duoc chay ngay
-> 2026-10-27: setup cai (repair tren mot lan thu dau bi ngat) tu zip da publish,
-> dashboard toggle EN/VI, va Pause/Resume/Restart di qua broker nang quyen
-> (prompt UAC quan sat duoc o Restart; ca ba deu ghi `ok` trong operation log).
-> Lan GUI thu hai da chay CDN, Set upstream (custom + reset), Set DNS
-> (`1.1.1.1` + khoi phuc), va Uninstall. Uninstall da xoa service, task
-> watchdog, va DNS, nhung de lai thu muc cai dat va khong len lich xoa luc
-> reboot; can xoa thu muc bang quyen admin. Nut GUI Update van chua duoc test.
-> Dashboard khong nang quyen bao thieu task watchdog SYSTEM do ACL, va dong
-> version hien `match unknown`. Rollback drill `1.2.6` van khong chay duoc vi
-> release do chua bao gio duoc publish.
+> uninstall + reboot). Installer `v2.0.2` dong goi luong tien trinh tung buoc va
+> ket qua match manager that, nhung chua chay lai toan bo tren may that. GUI
+> manager `2.0.0` va duong broker da duoc chay ngay 2026-10-27: setup cai
+> (repair tren mot lan thu dau bi ngat) tu zip da publish, dashboard toggle
+> EN/VI, va Pause/Resume/Restart di qua broker nang quyen (prompt UAC quan sat
+> duoc o Restart; ca ba deu ghi `ok` trong operation log). Lan GUI thu hai da
+> chay CDN, Set upstream (custom + reset), Set DNS (`1.1.1.1` + khoi phuc), va
+> Uninstall. Uninstall da xoa service, task watchdog, va DNS, nhung de lai thu
+> muc cai dat va khong len lich xoa luc reboot; can xoa thu muc bang quyen
+> admin. Nut GUI Update van chua duoc test. Dashboard khong nang quyen bao
+> thieu task watchdog SYSTEM do ACL. Manager `2.0.1` them tien trinh tung buoc
+> va bao `equal`, `mismatch`, hoac `unknown` tu pin noi bo ma khong goi mang.
+> Rollback drill `1.2.6` van khong chay duoc vi release do chua bao gio duoc
+> publish.
 
 ## Su dung
 

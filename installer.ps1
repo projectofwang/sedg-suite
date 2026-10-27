@@ -107,7 +107,7 @@ function Test-Administrator {
 # set (optional, for tests and packaging - nothing requires them). The seams
 # are ignored when elevated unless -AllowSeam is passed.
 
-$script:InstallerVersion = '2.0.1'
+$script:InstallerVersion = '2.0.2'
 if ((-not [string]::IsNullOrWhiteSpace($env:SEDG_INSTALL_PATH)) -and ($AllowSeam -or (-not (Test-Administrator)))) {
     Write-Warning 'SEDG_INSTALL_PATH test seam is active; install layout leaves the default.'
     $script:InstallPath = $env:SEDG_INSTALL_PATH
@@ -163,9 +163,9 @@ $script:Sources = @{
 $script:NssmVersion = '2.24'
 $script:NssmSha256 = '727d1e42275c605e0f04aba98095c38a8e1e46def453cdffce42869428aa6743'
 $script:ManagerRepository = 'projectofwang/sedg-suite'
-$script:ManagerTag = '2.0.0'
-$script:ManagerAsset = 'sedg-manager-win-x64-2.0.0.zip'
-$script:ManagerSha256 = '0dfef898b47e2f26f8b65ade4e5ffeac270a10b65bbc41f793ae3f95d9f5ee8d'
+$script:ManagerTag = '2.0.1'
+$script:ManagerAsset = 'sedg-manager-win-x64-2.0.1.zip'
+$script:ManagerSha256 = '21e70411fc1ad90cac8b2989aac8cae0a2d7d66de7c4e2b504ee14baa2f21297'
 $script:LangDir = Join-Path $env:APPDATA 'serverless-edge-dns-gateway'
 $script:LangFile = Join-Path $script:LangDir 'lang.txt'
 
@@ -791,9 +791,9 @@ function Get-EmbeddedManifest {
             }
             manager = [pscustomobject]@{
                 repository = 'projectofwang/sedg-suite'
-                tag = '2.0.0'
-                asset = 'sedg-manager-win-x64-2.0.0.zip'
-                sha256 = '0dfef898b47e2f26f8b65ade4e5ffeac270a10b65bbc41f793ae3f95d9f5ee8d'
+                tag = '2.0.1'
+                asset = 'sedg-manager-win-x64-2.0.1.zip'
+                sha256 = '21e70411fc1ad90cac8b2989aac8cae0a2d7d66de7c4e2b504ee14baa2f21297'
             }
             nssm = [pscustomobject]@{
                 version = $script:NssmVersion
