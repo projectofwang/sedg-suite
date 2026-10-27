@@ -94,10 +94,13 @@ hanh.
 > 2026-10-27: setup cai (repair tren mot lan thu dau bi ngat) tu zip da publish,
 > dashboard toggle EN/VI, va Pause/Resume/Restart di qua broker nang quyen
 > (prompt UAC quan sat duoc o Restart; ca ba deu ghi `ok` trong operation log).
-> Cac nut GUI Uninstall/Update/upstream/DNS/CDN chua duoc bam; dashboard khong
-> nang quyen bao thieu task watchdog SYSTEM do ACL, va dong version hien `match
-> unknown`. Rollback drill `1.2.6` van khong chay duoc vi release do chua bao
-> gio duoc publish.
+> Lan GUI thu hai da chay CDN, Set upstream (custom + reset), Set DNS
+> (`1.1.1.1` + khoi phuc), va Uninstall. Uninstall da xoa service, task
+> watchdog, va DNS, nhung de lai thu muc cai dat va khong len lich xoa luc
+> reboot; can xoa thu muc bang quyen admin. Nut GUI Update van chua duoc test.
+> Dashboard khong nang quyen bao thieu task watchdog SYSTEM do ACL, va dong
+> version hien `match unknown`. Rollback drill `1.2.6` van khong chay duoc vi
+> release do chua bao gio duoc publish.
 
 ## Su dung
 
@@ -205,9 +208,11 @@ kiem tra trinh cai dat da tai truoc khi chay.
 ```
 
 Lenh gho bo dung va xoa hai dich vu, xoa task watchdog, va khoi phuc cac ban
-sao luu DNS theo adapter da chup luc cai dat. Cac tep bi Windows giu se duoc
-lich xoa tai lan khoi dong lai tiep theo. Them `-Purge` de xu ly them log, tep
-ngon ngu, ghi nhan adapter, va du lieu staging.
+sao luu DNS theo adapter da chup luc cai dat. Cac tep bi Windows giu thuong
+duoc len lich xoa tai lan khoi dong lai tiep theo; neu thu muc cai dat van con
+(vi du manager dang chay), hay dong manager va xoa thu muc bang shell co quyen
+admin. Them `-Purge` de xu ly them log, tep ngon ngu, ghi nhan adapter, va du
+lieu staging.
 
 ## Xu ly su co
 

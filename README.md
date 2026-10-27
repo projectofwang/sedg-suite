@@ -93,9 +93,12 @@ the release payload.
 > on 2026-10-27: setup installed (repair over an interrupted first attempt)
 > from the published zip, the dashboard toggled EN/VI, and Pause/Resume/Restart
 > ran through the elevated broker (UAC prompt observed for Restart; all three
-> recorded `ok` in the operation log). The GUI Uninstall/Update/
-> upstream/DNS/CDN buttons were not exercised; the unelevated dashboard reports
-> the SYSTEM watchdog task as missing by ACL, and version rows show `match
+> recorded `ok` in the operation log). A second GUI pass exercised CDN, Set
+> upstream (custom + reset), Set DNS (`1.1.1.1` + restore), and Uninstall.
+> Uninstall removed the services, watchdog task, and DNS settings, but left the
+> install tree and did not schedule it for reboot; the folder needs an elevated
+> removal. GUI Update is still untested. The unelevated dashboard reports the
+> SYSTEM watchdog task as missing by ACL, and version rows show `match
 > unknown`. The planned `1.2.6` rollback drill could not be run because that
 > release was never published.
 
@@ -207,7 +210,9 @@ can check a downloaded installer before you run it.
 
 Uninstall stops and removes both services, removes the watchdog task, and
 restores the per-adapter DNS backups taken at install time. Files that are
-locked by Windows are scheduled for deletion at the next reboot. Add `-Purge`
+locked by Windows are normally scheduled for deletion at the next reboot; if
+the install folder remains (for example because the manager was still running),
+close the manager and remove the folder from an elevated shell. Add `-Purge`
 to also delete logs, the language file, touched-adapter records, and staging
 data.
 
